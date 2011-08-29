@@ -76,8 +76,8 @@ def with_app(app):
 class WsgiTest(unittest.TestCase):
   """Base class for doing WSGI applicaiton tests.
 
-  Sets up an entire server so that tests can be run from the point of view
-  of an HTTP client.
+  Optionally sets up an entire server so that tests can be run from the point
+  of view of an HTTP client.
 
   To set up a test for a specific applicaiton, override create_wsgi_app function.
   or replace with a static method factory function.
@@ -93,25 +93,36 @@ class WsgiTest(unittest.TestCase):
       sys.exit(1)
     
     self.app = self.create_wsgi_app()
-    self.validated_app = validate.validator(self.app)
-    self.port = pick_unused_port()
-    self.server = simple_server.make_server(
-      'localhost', self.port, self.validated_app)
-    wait_for_start = threading.Event()
-    def starter():
-      wait_for_start.set()
-      self.server.serve_forever()
-    self.server_thread = threading.Thread(target=starter)
-    self.server_thread.start()
-    wait_for_start.wait()
-    # Seems to be necessary to sleep for a while to give server time to
-    # start.
-    time.sleep(self.START_DELAY_TIME)
-    self.connection = httplib.HTTPConnection('localhost', self.port)
+    self.server = None
+    if self.app:
+      self.validated_app = validate.validator(self.app)
+      self.port = pick_unused_port()
+      self.server = simple_server.make_server(
+        'localhost', self.port, self.validated_app)
+      wait_for_start = threading.Event()
+      def starter():
+        wait_for_start.set()
+        self.server.serve_forever()
+      self.server_thread = threading.Thread(target=starter)
+      self.server_thread.start()
+      wait_for_start.wait()
+      # Seems to be necessary to sleep for a while to give server time to
+      # start.
+      time.sleep(self.START_DELAY_TIME)
+      self.connection = httplib.HTTPConnection('localhost', self.port)
 
   def tearDown(self):
-    self.server.shutdown()
-    self.server_thread.join()
+    if self.server:
+      self.server.shutdown()
+      self.server_thread.join()
+
+  def do_request(self):
+    """Does a basic request against local server.
+
+    Only use if server has been initialized on test.
+    """
+    self.connection.request('GET', '/')
+    return self.connection.getresponse()
 
   def create_wsgi_app(self):
     """Create WSGI application for use with server in test.
@@ -123,18 +134,13 @@ class WsgiTest(unittest.TestCase):
 
     Override this method to have more complex behavior.
 
-    Raises:
-      NotImplementedError if the method has not been configured using
-      with_app and no TEST_APP class variable has been set on test.
+    Returns:
+      A WSGI application if method has app attribute or test has TEST_APP
+      class attribute, else None.  If None, no server is started on the test.
     """
     method_name = self.id().split('.')[-1]
     method = getattr(self, method_name)
     app = getattr(method, 'app', None)
     if not app:
       app = getattr(self, 'TEST_APP', None)
-    if app:
-      return app
-    else:
-      logging.error('It looks like you forgot to defined TEST_APP on the test '
-                    'class, or decorate your test method using "with_app".')
-      raise NotImplementedError()
+    return app

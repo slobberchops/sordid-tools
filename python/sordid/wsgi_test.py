@@ -23,10 +23,6 @@ from sordid import wsgi
 
 class StaticServerTest(test_util.WsgiTest):
 
-  def do_request(self):
-    self.connection.request('GET', '/')
-    return self.connection.getresponse()
-
   @test_util.with_app(wsgi.static(content='This is content'))
   def test_basic_content(self):
     response = self.do_request()
@@ -89,6 +85,57 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('value-1', response.getheader('header-1'))
     self.assertEquals('value-2', response.getheader('header-2'))
     self.assertEquals('', response.read())
+
+
+class ChooseTest(test_util.WsgiTest):
+
+  @test_util.with_app(wsgi.choose(
+    wsgi.static(400, 'first', headers={'a': '1'}),
+    wsgi.static(500, 'second', headers={'a': '2'}),
+    wsgi.static(300, 'third', headers={'a': '3'})))
+  def test_match_first(self):
+    response = self.do_request()
+    self.assertEquals(400, response.status)
+    self.assertEquals('first', response.read())
+    self.assertEquals('1', response.getheader('a'))
+
+  @test_util.with_app(wsgi.choose(
+    wsgi.static(404, 'first', headers={'a': '1'}),
+    wsgi.static(500, 'second', headers={'a': '2'}),
+    wsgi.static(300, 'third', headers={'a': '3'})))
+  def test_match_second(self):
+    response = self.do_request()
+    self.assertEquals(500, response.status)
+    self.assertEquals('second', response.read())
+    self.assertEquals('2', response.getheader('a'))
+
+  @test_util.with_app(wsgi.choose(
+    wsgi.static(404, 'first', headers={'a': '1'}),
+    wsgi.static(404, 'second', headers={'a': '2'}),
+    wsgi.static(300, 'third', headers={'a': '3'})))
+  def test_match_third(self):
+    response = self.do_request()
+    self.assertEquals(300, response.status)
+    self.assertEquals('third', response.read())
+    self.assertEquals('3', response.getheader('a'))
+
+  def test_no_apps(self):
+    try:
+      wsgi.choose()
+    except TypeError, err:
+      self.assertEquals('Choose function requires at least two applications',
+                        str(err))
+    else:
+      self.fail('choose should require at least two applications')
+
+  def test_only_one_app(self):
+    try:
+      wsgi.choose(wsgi.HTTP_INTERNAL_SERVER_ERROR)
+    except TypeError, err:
+      self.assertEquals('Choose function requires at least two applications',
+                        str(err))
+    else:
+      self.fail('choose should require at least two applications')
 
 
 if __name__ == '__main__':

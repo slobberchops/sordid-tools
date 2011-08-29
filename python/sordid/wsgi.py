@@ -15,10 +15,11 @@
 # limitations under the License.
 #
 
+import logging
 import httplib
 
 from sordid import util
-
+      
 
 @util.positional(2)
 def static(code=200, content='', headers={},
@@ -44,9 +45,15 @@ def static(code=200, content='', headers={},
     headers = headers.items()
 
   headers.append(('content-type', content_type))
+
+  if isinstance(content, basestring):
+    content = (content,)
+  else:
+    content = tuple(content)
+
   def response_app(environ, start_response):
     start_response(code, headers)
-    yield content
+    return content
   return response_app
 
 
@@ -119,3 +126,30 @@ def _define_standard_responses():
     globals()['HTTP_' + name] = static((code, description))
 _define_standard_responses()
 del _define_standard_responses
+
+
+def choose(*apps):
+  """Chain multiple WSGI applications, choosing the first successful one.
+
+  Chains multiple applications together so that the first application
+  encountered that the result of the first application that does not send
+  404 as it's status is sent to the client.  Any application in the list
+  after the first successful application is not executed.
+  """
+  if len(apps) < 2:
+    raise TypeError('Choose function requires at least two applications')
+
+  def choose_app(environ, start_response):
+    started = [False]
+    def choose_start_response(status, headers):
+      if not status.startswith('404'):
+        started[0] = True
+        start_response(status, headers)
+
+    for app in apps:
+      content = app(environ, choose_start_response)
+      if started[0]:
+        return content
+
+    return HTTP_NOT_FOUND(environ, start_response)
+  return choose_app
