@@ -138,5 +138,47 @@ class ChooseTest(test_util.WsgiTest):
       self.fail('choose should require at least two applications')
 
 
+def chained(name):
+  """Create a simple chain tester that calls next application in chain."""
+  def chained_app(environ, start_response):
+    next_app = environ[wsgi.NEXT_APP_ENVIRON]
+    if next_app:
+      content = next_app(environ, start_response)
+    else:
+      content = []
+      start_response('200 OK', [('content-type', 'text/plain')])
+    return content + [name + ' ']
+  return chained_app
+
+
+class ChainTest(test_util.WsgiTest):
+
+  @test_util.with_app(wsgi.chain(chained('app1'),
+                                 chained('app2'),
+                                 chained('app3')))
+  def test_chain(self):
+    response = self.do_request()
+    self.assertEquals(200, response.status)
+    self.assertEquals('app3 app2 app1 ', response.read())
+
+  def test_no_apps(self):
+    try:
+      wsgi.chain()
+    except TypeError, err:
+      self.assertEquals('Chain function requires at least two applications',
+                        str(err))
+    else:
+      self.fail('chain should require at least two applications')
+
+  def test_only_one_app(self):
+    try:
+      wsgi.chain(wsgi.HTTP_INTERNAL_SERVER_ERROR)
+    except TypeError, err:
+      self.assertEquals('Chain function requires at least two applications',
+                        str(err))
+    else:
+      self.fail('chain should require at least two applications')
+
+
 if __name__ == '__main__':
   unittest.main()

@@ -19,7 +19,9 @@ import logging
 import httplib
 
 from sordid import util
-      
+
+NEXT_APP_ENVIRON = 'sordid.next.app'
+
 
 @util.positional(2)
 def static(code=200, content='', headers={},
@@ -129,7 +131,7 @@ del _define_standard_responses
 
 
 def choose(*apps):
-  """Chain multiple WSGI applications, choosing the first successful one.
+  """Chose from multiple WSGI applications.
 
   Chains multiple applications together so that the first application
   encountered that the result of the first application that does not send
@@ -153,3 +155,30 @@ def choose(*apps):
 
     return HTTP_NOT_FOUND(environ, start_response)
   return choose_app
+      
+
+def chain(*apps):
+  """Chain middleware applications together.
+
+  Modifies each applications executing environment to contain a reference to
+  the next middleware application in the chain.  The next middleware application
+  can be accessed via 'sordid.next.app'.
+  """
+  if len(apps) < 2:
+    raise TypeError('Chain function requires at least two applications')
+
+  def make_chain(apps):
+    previous_app = apps[0]
+    if len(apps) == 1:
+      next_app = None
+    else:
+      next_app = make_chain(apps[1:])
+    def chained_app(environ, start_response):
+      environ[NEXT_APP_ENVIRON] = next_app
+      try:
+        return previous_app(environ, start_response)
+      finally:
+        environ[NEXT_APP_ENVIRON] = previous_app
+    return chained_app
+  return make_chain(apps)
+
