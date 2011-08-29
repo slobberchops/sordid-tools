@@ -45,6 +45,34 @@ def pick_unused_port():
   return port
 
 
+def with_app(app):
+  """Decorator for associating individual tests with a WSGI application.
+
+  Used with WsgiTest to associate an individual WSGI test with a provided
+  application.
+
+  See WsgiTest for information about how to test a WSGI application.
+
+  Example:
+
+    def my_application(environ, start_response):
+      ...
+
+    class MyTest(WsgiTest):
+
+      @with_app(my_application)
+      def test_my_app(self):
+        ...
+
+  Returns:
+    Decorator used to decorate a test method.
+  """
+  def with_app_decorator(method):
+    method.app = app
+    return method
+  return with_app_decorator
+
+
 class WsgiTest(unittest.TestCase):
   """Base class for doing WSGI applicaiton tests.
 
@@ -54,6 +82,9 @@ class WsgiTest(unittest.TestCase):
   To set up a test for a specific applicaiton, override create_wsgi_app function.
   or replace with a static method factory function.
   """
+
+  # How long in seconds to wait for server to start.
+  START_DELAY_TIME = 0.5
 
   def setUp(self):
     if sys.version_info[:2] < (2, 6):
@@ -75,7 +106,7 @@ class WsgiTest(unittest.TestCase):
     wait_for_start.wait()
     # Seems to be necessary to sleep for a while to give server time to
     # start.
-    time.sleep(1)
+    time.sleep(self.START_DELAY_TIME)
     self.connection = httplib.HTTPConnection('localhost', self.port)
 
   def tearDown(self):
@@ -83,4 +114,27 @@ class WsgiTest(unittest.TestCase):
     self.server_thread.join()
 
   def create_wsgi_app(self):
-    raise NotImplememtnedError()
+    """Create WSGI application for use with server in test.
+
+    If test method has been decorated using 'with_app', will pass that
+    application to the test server.
+
+    If no association is found, will check TEST_APP class attribute.
+
+    Override this method to have more complex behavior.
+
+    Raises:
+      NotImplementedError if the method has not been configured using
+      with_app and no TEST_APP class variable has been set on test.
+    """
+    method_name = self.id().split('.')[-1]
+    method = getattr(self, method_name)
+    app = getattr(method, 'app', None)
+    if not app:
+      app = getattr(self, 'TEST_APP', None)
+    if app:
+      return app
+    else:
+      logging.error('It looks like you forgot to defined TEST_APP on the test '
+                    'class, or decorate your test method using "with_app".')
+      raise NotImplementedError()
