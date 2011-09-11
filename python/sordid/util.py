@@ -92,14 +92,20 @@ class Property(object):
   def name(self):
     return self.__name
 
+  def __get_property__(self, owner):
+    return self
+
+  def __get_value__(self, instance, owner):
+    return getattr(instance, self.__attribute_name)
+
   def __get__(self, instance, owner):
     if instance is None:
-      return self
+      return self.__get_property__(owner)
     else:
       if self.__name is None:
         raise IllegalStateError('Property name has not been assigned to '
                                 'attribute yet')
-      return getattr(instance, self.__attribute_name)
+      return self.__get_value__(instance, owner)
 
   def __set__(self, instance, value):
     if self.__name is None:
