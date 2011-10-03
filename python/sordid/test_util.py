@@ -144,3 +144,10 @@ class WsgiTest(unittest.TestCase):
     if not app:
       app = getattr(self, 'TEST_APP', None)
     return app
+
+
+class TestCase(unittest.TestCase):
+
+  def assertIs(self, a, b, message=None):
+    message = message or ('Expected %r, was %r' % (a, b))
+    self.assertTrue(a is b, message)
