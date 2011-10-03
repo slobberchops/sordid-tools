@@ -147,7 +147,15 @@ class WsgiTest(unittest.TestCase):
 
 
 class TestCase(unittest.TestCase):
+  """Base class for additional testing functionality."""
 
   def assertIs(self, a, b, message=None):
+    """Assert that two values are actually the same.
+
+    Args:
+      a: First value to compare.
+      b: Second value to compare.
+      message: Optional message.
+    """
     message = message or ('Expected %r, was %r' % (a, b))
     self.assertTrue(a is b, message)
