@@ -20,31 +20,6 @@ import unittest
 from sordid import machine
 
 
-class StateTest(unittest.TestCase):
-
-  def testString(self):
-    class FakeMachine(object):
-      pass
-
-    s1 = machine.State()
-    s2 = machine.State()
-
-    self.assertEquals('UNASSIGNED::UNKNOWN', str(s1))
-    self.assertEquals('UNASSIGNED::UNKNOWN', str(s2))
-
-    s1.machine = FakeMachine
-    s2.machine = FakeMachine
-
-    self.assertEquals('FakeMachine::UNKNOWN', str(s1))
-    self.assertEquals('FakeMachine::UNKNOWN', str(s2))
-
-    s1.name = 's1'
-    s2.name = 's2'
-
-    self.assertEquals('FakeMachine::s1', str(s1))
-    self.assertEquals('FakeMachine::s2', str(s2))
-
-
 class MachineTest(unittest.TestCase):
 
   def testEmptyMachine(self):
