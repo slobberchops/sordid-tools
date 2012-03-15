@@ -285,24 +285,10 @@ class HasPropsTest(mox.MoxTestBase):
                       set(HasProps.props()))
 
 
-class PropertyTest(unittest.TestCase):
+class PropertyTestMixin(object):
 
   def setUp(self):
     self.C = self.new_class()
-
-  def new_class(self):
-    class C(object):
-      p = properties.Property()
-    return C
-
-  def testInitialState(self):
-    self.assertRaises(AttributeError, getattr, self.C.p, 'name')
-    self.assertRaises(AttributeError, getattr, self.C.p, 'class')
-
-    c = self.C()
-    self.assertRaises(AttributeError, getattr, c, 'p')
-    self.assertRaises(AttributeError, setattr, c, 'p', 1)
-    self.assertRaises(AttributeError, delattr, c, 'p')
 
   def do_test_set_and_delete(self, c):
     c.p = 'x'
@@ -314,11 +300,17 @@ class PropertyTest(unittest.TestCase):
     self.assertRaises(AttributeError, getattr, c, 'p')
     self.assertRaises(AttributeError, delattr, c, 'p')
 
+  def testInitialState(self):
+    self.assertRaises(AttributeError, getattr, self.C.p, 'name')
+    self.assertRaises(AttributeError, getattr, self.C.p, 'class')
+
+    c = self.C()
+    self.assertRaises(AttributeError, getattr, c, 'p')
+    self.assertRaises(AttributeError, setattr, c, 'p', 1)
+    self.assertRaises(AttributeError, delattr, c, 'p')
+
   def testGetSetAndDelete(self):
-    attrs = {}
-    for name in dir(self.C):
-      attrs[name] = getattr(self.C, name)
-    properties.config_props(self.C, attrs)
+    properties.config_props(self.C)
     c = self.C()
 
     self.assertRaises(AttributeError, getattr, c, 'p')
@@ -327,7 +319,35 @@ class PropertyTest(unittest.TestCase):
     self.do_test_set_and_delete(c)
 
 
-class StrictPropertyTest(PropertyTest):
+class PropertyTest(PropertyTestMixin, unittest.TestCase):
+
+  def new_class(self):
+    class C(object):
+      p = properties.Property()
+    return C
+
+  def testOverridableGetProperty(self):
+
+    class CalcProp(properties.Property):
+
+      def __init__(self):
+        self.count = 0
+
+      def __get_property__(self, instance):
+        self.count += 1
+        return 'I am calculated: %d' % self.count
+
+    class HasCalc(properties.Propertied):
+      calc = CalcProp()
+
+    instance = HasCalc()
+    self.assertEquals('I am calculated: 1', instance.calc)
+    self.assertEquals('I am calculated: 2', instance.calc)
+    instance.calc = 'new val'
+    self.assertEquals('I am calculated: 3', instance.calc)
+
+
+class StrictPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):
@@ -383,7 +403,7 @@ class StrictPropertyTest(PropertyTest):
     self.assertEquals('another unicode', c.s)
 
 
-class ReadOnlyPropertyTest(PropertyTest):
+class ReadOnlyPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):

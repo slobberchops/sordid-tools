@@ -239,6 +239,9 @@ class Property(object):
       raise AttributeError('Property not configured')
     return self.__cls
 
+  def __get_property__(self, instance):
+    return getattr(instance, self.__attribute_name)
+
   def __get__(self, instance, owner):
     """Get value of property.
 
@@ -250,7 +253,7 @@ class Property(object):
     else:
       if self.__name is None:
         raise AttributeError('Property not configured')
-      return getattr(instance, self.__attribute_name)
+      return self.__get_property__(instance)
 
   def __set__(self, instance, value):
     """Set new value for property.
