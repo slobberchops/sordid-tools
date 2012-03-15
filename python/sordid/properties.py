@@ -15,62 +15,81 @@
 # limitations under the License.
 #
 
-from sordid import util
 
+def config_props(cls, attrs):
+  """Configure all properties found on a class instance.
 
-class Property(object):
-  """A property base class.
+  Attempts to configure all properties of a class.  If class has
+  __config_props__ class method, will delegate configuration to it.
+  Otherwise, it iterates over all attributes and calls config_prop
+  on it.
 
-  This class implements a Python descriptor object:
-
-    http://docs.python.org/reference/datamodel.html#descriptors
-
-  When used in conjection with the PropertiedType meta-class or Propertied
-  class it is possible to build reusable declarative properties that more
-  clearly define how a property is intended to be used.
-
-  An instance of a Property is meant to be associated with a single name
-  on a single class.
-
-  Each property has a 'configure' method to properly sets up the property
-  for use with an associated class.  The default behavior of 'configure' is
-  to indicate to the property what its name will be and to tell it which class
-  it is associated with.  The value of a property for an instance of the
-  assigned class is stored on a private variable of the target class.
+  Args:
+    cls: Class with properties in need of configuration.
+    attrs: Dictionary of attributes.
   """
+  try:
+    cls_config_props = cls.__config_props__
+  except AttributeError:
+    for name, value in attrs.iteritems():
+      config_prop(cls, name, value)
+  else:
+    cls_config_props(attrs)
 
-  __name = None
 
-  def configure(self, cls, name):
-    if self.__name:
-      raise IllegalStateError('Property is already configured')
-    self.__name = name
-    self.__attribute_name = '_%s__%s' % (cls.__name__, name)
+def config_prop(cls, name, value):
+  """Configure property on class.
 
-  @property
-  def name(self):
-    return self.__name
+  Attempts to configure single property on a class.  If class has
+  __config_prop__ class method will use that it configure property.
+  Otherwise it will call config_prop_name on property.
 
-  def __get_property__(self, owner):
-    return self
+  Args:
+    cls: Class with property in need of configuration.
+    name: Name of attribute.
+    value: Value of attribute.
 
-  def __get_value__(self, instance, owner):
-    return getattr(instance, self.__attribute_name)
+  Returns:
+    True if attribute was determined to be a property and was configured,
+    else False.
+  """
+  try:
+    cls_config_prop = cls.__config_prop__
+  except AttributeError:
+    return config_prop_name(cls, name, value)
+  else:
+    return cls_config_prop(name, value)
 
-  def __get__(self, instance, owner):
-    if instance is None:
-      return self.__get_property__(owner)
-    else:
-      if self.__name is None:
-        raise util.IllegalStateError('Property name has not been assigned to '
-                                     'attribute yet')
-      return self.__get_value__(instance, owner)
 
-  def __set__(self, instance, value):
-    if self.__name is None:
-      raise util.IllegalStateError('Property name has not been assigned to '
-                                   'attribute yet')
-    setattr(instance, self.__attribute_name, value)
+def config_prop_name(cls, name, value):
+  """Configure name on property.
+
+  Attempts to configure the name of a property.  If attribute value has
+  __config__ method will call it with attribute name.
+
+  Args:
+    cls: Class property will belong to.
+    name: Name of attribute.
+    value: Value of attribute.
+
+  Returns:
+    True if attribute was determined to be a property and was configured,
+    else False.
+  """
+  if not isinstance(cls, type):
+    raise TypeError('Class must be a type')
+  if not isinstance(name, str):
+    raise TypeError('Name must be a string')
+  if not name:
+    raise ValueError('Name must be non-empty')
+
+  try:
+    config = value.__config__
+  except AttributeError:
+    return False
+  else:
+    config(cls, name)
+    return True
 
 
 class PropertiedType(type):
@@ -98,7 +117,7 @@ class PropertiedType(type):
 
   When a Property instance is assigned to a class attribute of a PropertiedType
   the class it is being assigned to and the name of the property are
-  automatically sent to the Property's 'configure' method.  The above definition
+  automatically sent to the Property's '__config__' method.  The above definition
   is the same as doing:
 
     class Person(object):
@@ -106,14 +125,12 @@ class PropertiedType(type):
       name = StrictType(unicode)
       age = StrictType(int)
 
-    Person.name.configure(Person, 'name')
-    Person.age.configure(Person, 'age')
+    Person.name.__config__('name')
+    Person.age.__config__('age')
   """
 
   def __init__(cls, name, bases, dct):
-    for attribute, value in dct.iteritems():
-      if isinstance(value, Property):
-        value.configure(cls, attribute)
+    config_props(cls, dct)
 
 
 class Propertied(object):
@@ -130,35 +147,39 @@ class Propertied(object):
   __metaclass__ = PropertiedType
 
 
-class StrictProperty(Property):
-  """Property that resticts values to a particular type.
+class HasProps(Propertied):
+  """Convenient base class for properties classes that know their properties.
 
-  Attempting to set a value on a strict property that is not of the
-  provided type (other than None) will raise a TypeError.
+  Classes that inherit from this class will remember what properties it has and
+  provide methods for enumerating those properties.
+
+  Properties are inherited from base classes but can be overridden.
   """
 
-  def __init__(self, property_type):
-    self.__property_type = property_type
+  @classmethod
+  def __config_props__(cls, attrs):
+    """Configures and rememberes class properties."""
+    try:
+      cls.__props = dict(cls.__props.iteritems())
+    except AttributeError:
+      cls.__props = {}
+    for name, value in attrs.iteritems():
+      config_prop(cls, name, value)
+    cls.__prop_names = frozenset(cls.__props.iterkeys())
+    cls.__prop_set = frozenset(cls.__props.iteritems())
 
-  @property
-  def property_type(self):
-    return self.__property_type
+  @classmethod
+  def __config_prop__(cls, name, value):
+    """Configures and potentially remembers a single property."""
+    if config_prop_name(cls, name, value):
+      cls.__props[name] = value
 
-  def __set__(self, instance, value):
-    if not(value is None or isinstance(value, self.__property_type)):
-      raise TypeError('Property \'%s\' must be type %s' % (
-        self.name, self.__property_type.__name__))
-    super(StrictProperty, self).__set__(instance, value)
+  @classmethod
+  def prop_names(cls):
+    """Iterable of all property names."""
+    return cls.__prop_names
 
-
-class ReadOnlyProperty(Property):
-  """Property that may only be set once with non-None value."""
-
-  def __set__(self, instance, value):
-    current_value = getattr(instance, self.name, None)
-    if current_value is not None:
-      raise util.IllegalStateError('Property \'%s\' is already configured' %
-                                   self.name)
-    super(ReadOnlyProperty, self).__set__(instance, value)
-
-
+  @classmethod
+  def props(cls):
+    """Iterable of all property descriptors."""
+    return cls.__prop_set

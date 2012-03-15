@@ -17,132 +17,259 @@
 
 import unittest
 
+import mox
+
 from sordid import properties
-from sordid import util
 
 
-p1 = properties.Property()
-class MyClass(object):
-  property1 = p1
+class ConfigPropNameTest(mox.MoxTestBase):
 
-
-class  PropertyTest(unittest.TestCase):
-
-  def testStaticAccess(self):
-    self.assertEquals(id(p1), id(MyClass.property1))
-
-  def testSetGet(self):
-    instance = MyClass()
-    try:
-      instance.property1
-    except util.IllegalStateError, err:
-      self.assertEquals('Property name has not been assigned to attribute yet',
-                        str(err))
-    else:
-      self.fail('Should have been an illegal state')
-
-    try:
-      instance.property1 = 10
-    except util.IllegalStateError, err:
-      self.assertEquals('Property name has not been assigned to attribute yet',
-                        str(err))
-    else:
-      self.fail('Should have been an illegal state')
-
-  def testSetAndGet(self):
-    class WorkingClass(object):
-
-      property1 = properties.Property()
-
-    WorkingClass.property1.configure(WorkingClass, 'property1')
-    self.assertEquals('property1', WorkingClass.property1.name)
-
-    instance = WorkingClass()
-
-    try:
-      instance.property1
-    except AttributeError:
+  def setUp(self):
+    super(ConfigPropNameTest, self).setUp()
+    class TargetClass(object):
       pass
-    else:
-      self.fail('Should have been an attribute error')
+    self.target_class = TargetClass
 
-    test_string = 'a value'
-    instance.property1 = test_string
-    self.assertEquals(id(test_string), id(instance.property1))
+  def testNotConfigurable(self):
+    for unconfigurable in (1, None, [], {}, 'str'):
+      self.assertFalse(
+        properties.config_prop_name(self.target_class, 'a', unconfigurable))
 
+  def testConfigurable(self):
+    configurable = self.mox.CreateMockAnything()
+    configurable.__config__(self.target_class, 'a')
 
-class MyPropertied(object):
+    self.mox.ReplayAll()
 
-  __metaclass__ = properties.PropertiedType
+    self.assertTrue(
+      properties.config_prop_name(self.target_class, 'a', configurable))
 
-  auto_configured = properties.Property()
+  def testClassNotType(self):
+    for not_class in (1, None, [], {}, 'str'):
+      self.assertRaises(TypeError,
+                        properties.config_prop_name,
+                        not_class, 'a', 'does not matter')
 
+  def testNameNotString(self):
+    for not_string in (1, None, [], {}, object):
+      self.assertRaises(TypeError,
+                        properties.config_prop_name,
+                        self.target_class, not_string, 'does not matter')
 
-class PropertiedTypeTest(unittest.TestCase):
-
-  def testAutoConfigured(self):
-    self.assertEquals('auto_configured', MyPropertied.auto_configured.name)
-    propertied = MyPropertied()
-    test_string = 'a_string'
-    propertied.auto_configured = test_string
-    self.assertEquals(id(test_string), id(propertied.auto_configured))
-
-
-class HasStrict(properties.Propertied):
-
-  string = properties.StrictProperty(str)
-  integer = properties.StrictProperty(int)
-  multi = properties.StrictProperty((int, str))
-
-
-class StrictPropertyTest(unittest.TestCase):
-
-  def testAssignment(self):
-    strict = HasStrict()
-    test_string = 'a string'
-    strict.string = test_string
-    self.assertEquals(id(test_string), id(strict.string))
-
-    test_integer = 340
-    strict.integer = test_integer
-    self.assertEquals(id(test_integer), id(strict.integer))
-
-  def testIllegalAssignment(self):
-    strict = HasStrict()
-
-    try:
-      strict.string = 304
-    except TypeError, err:
-      self.assertEquals('Property \'string\' must be type str', str(err))
-    else:
-      self.fail('Should have been a TypeError')
-
-    try:
-      strict.integer = 'a string'
-    except TypeError, err:
-      self.assertEquals('Property \'integer\' must be type int', str(err))
-    else:
-      self.fail('Should have been a TypeError')
+  def testNameEmpty(self):
+    self.assertRaises(ValueError,
+                      properties.config_prop_name,
+                      self.target_class, '', 'does not matter')
 
 
-class ReadOnlyPropertyTest(unittest.TestCase):
+class ConfigPropTest(mox.MoxTestBase):
 
-  def testReadOnly(self):
-    class HasReadOnly(properties.Propertied):
-      read_only = properties.ReadOnlyProperty()
+  def DoCustomConfigPropTest(self, is_prop):
+    class TargetClass(object):
 
-    instance = HasReadOnly()
-    test_string = 'a string'
-    instance.read_only = test_string
-    self.assertEquals(id(test_string), id(instance.read_only))
+      __config_prop__ = self.mox.CreateMockAnything()
 
-    try:
-      instance.read_only = 'another value'
-    except util.IllegalStateError, err:
-      self.assertEquals('Property \'read_only\' is already configured',
-                        str(err))
-    else:
-      self.fail('Should have been IllegalStateException')
+    TargetClass.__config_prop__('a', 'prop1').AndReturn(is_prop)
+    self.mox.ReplayAll()
+
+    self.assertEquals(is_prop,
+                      properties.config_prop(TargetClass, 'a', 'prop1'))
+
+  def testCustomConfigPropTrue(self):
+    self.DoCustomConfigPropTest(True)
+
+  def testCustomConfigPropFalse(self):
+    self.DoCustomConfigPropTest(False)
+
+  def testConfigProp(self):
+    class TargetClass(object):
+      pass
+
+    # Test will pretend to be property.
+    self.__config__ = self.mox.CreateMockAnything()
+    self.__config__(TargetClass, 'a')
+
+    self.mox.ReplayAll()
+
+    self.assertEquals(True,
+                      properties.config_prop(TargetClass, 'a', self))
+
+  def testJustAttributes(self):
+
+    class TargetClass(object):
+      name = 'do not overwrite'
+      
+      def a_method(self):
+        pass
+
+      @classmethod
+      def a_class_method(cls):
+        pass
+
+    for not_property in (10, 'str', [], {}, None, TargetClass, TargetClass(),
+                         TargetClass.a_method, TargetClass.a_class_method):
+      self.assertFalse(properties.config_prop(TargetClass, 'a', not_property))
+      if not_property == TargetClass or isinstance(not_property, TargetClass):
+        self.assertEquals('do not overwrite', TargetClass.name)
+      else:
+        self.assertFalse(hasattr(not_property, 'name'),
+                         'Value \'%r\' has a name' % (not_property,))
+
+
+class ConfigPropsTest(mox.MoxTestBase):
+
+  def testCustomConfigPropsMethod(self):
+    class TargetClass(object):
+      __config_props__ = self.mox.CreateMockAnything()
+
+    attrs = {'a': 1}
+
+    TargetClass.__config_props__({'a': 1})
+
+    self.mox.ReplayAll()
+
+    properties.config_props(TargetClass, {'a': 1})
+
+  def testCustomConfigPropMethod(self):
+    
+    class TargetClass(object):
+      __config_prop__ = self.mox.CreateMockAnything()
+
+    attrs = {'a': 1, 'b': 2}
+
+    TargetClass.__config_prop__('a', 1).AndReturn(False)
+    TargetClass.__config_prop__('b', 2).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    properties.config_props(TargetClass, {'a': 1, 'b': 2})
+
+  def testCustomConfig(self):
+    prop1 = self.mox.CreateMockAnything()
+    prop2 = self.mox.CreateMockAnything()
+    
+    class TargetClass(object):
+      pass
+
+    prop1.__config__(TargetClass, 'a')
+    prop2.__config__(TargetClass, 'b')
+
+    self.mox.ReplayAll()
+
+    properties.config_props(TargetClass, {'a': prop1, 'b': prop2})
+
+  def testStillConstrains(self):
+    self.__config__ = self.mox.CreateMockAnything()
+    
+    class TargetClass(object):
+      pass
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(TypeError,
+                      properties.config_props, TargetClass, {1: self})
+
+
+class PropertiedTypeTest(mox.MoxTestBase):
+
+  def testMetaClass(self):
+    self.mox.StubOutWithMock(properties, 'config_props')
+
+    properties.config_props(mox.Func(lambda c: c.__name__ == 'MyClass'),
+                            {'__module__': __name__,
+                             '__metaclass__': properties.PropertiedType,
+                             'a': 'a',
+                             'b': 'b',
+                             })
+                             
+
+    self.mox.ReplayAll()
+
+    class MyClass(object):
+
+      __metaclass__ = properties.PropertiedType
+
+      a = 'a'
+      b = 'b'
+
+
+class PropDesc(object):
+
+  cls = None
+  name = None
+
+  def __config__(self, cls, name):
+    self.cls = cls
+    self.name = name
+
+
+class PropertiedTest(mox.MoxTestBase):
+
+  def testMetaClass(self):
+    self.mox.StubOutWithMock(properties, 'config_props')
+
+    properties.config_props(mox.Func(lambda c: c.__name__ == 'MySubClass'),
+                            {'__module__': __name__,
+                             'a': 1,
+                             'b': 2,
+                             })
+                             
+
+    self.mox.ReplayAll()
+
+    class MySubClass(properties.Propertied):
+
+      a = 1
+      b = 2
+
+  def testSimpleEndToEnd(self):
+    prop1 = PropDesc()
+    prop2 = PropDesc()
+
+    class MySubClass(properties.Propertied):
+
+      a = 1
+      b = 2
+      p1 = prop1
+      p2 = prop2
+
+    self.assertEquals(MySubClass, prop1.cls)
+    self.assertEquals('p1', prop1.name)
+
+    self.assertEquals(MySubClass, prop2.cls)
+    self.assertEquals('p2', prop2.name)
+
+
+class HasPropsTest(mox.MoxTestBase):
+
+  def testHasNoProperties(self):
+
+    class HasNoProps(properties.HasProps):
+      pass
+
+    self.assertEquals(set(), set(HasNoProps.prop_names()))
+    self.assertEquals(set(), set(HasNoProps.props()))
+
+  def testHasOnlyAttrs(self):
+
+    class HasOnlyAttrs(properties.HasProps):
+      a = 1
+      b = 2
+
+    self.assertEquals(set(), set(HasOnlyAttrs.prop_names()))
+    self.assertEquals(set(), set(HasOnlyAttrs.props()))
+
+  def testHasProps(self):
+
+    class HasProps(properties.HasProps):
+      a = PropDesc()
+      b = PropDesc()
+
+    self.assertEquals(set(['a', 'b']), set(HasProps.prop_names()))
+    self.assertEquals(set([('a', HasProps.a),
+                           ('b', HasProps.b)
+                          ]),
+                      set(HasProps.props()))
 
 
 if __name__ == '__main__':
