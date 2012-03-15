@@ -16,7 +16,7 @@
 #
 
 
-def config_props(cls, attrs):
+def config_props(cls, attrs=None):
   """Configure all properties found on a class instance.
 
   Attempts to configure all properties of a class.  If class has
@@ -28,6 +28,9 @@ def config_props(cls, attrs):
     cls: Class with properties in need of configuration.
     attrs: Dictionary of attributes.
   """
+  if attrs is None:
+    attrs = dict((name, getattr(cls, name)) for name in dir(cls))
+
   try:
     cls_config_props = cls.__config_props__
   except AttributeError:
@@ -183,3 +186,153 @@ class HasProps(Propertied):
   def props(cls):
     """Iterable of all property descriptors."""
     return cls.__prop_set
+
+
+class Property(object):
+  """A property base class.
+
+  This class implements a Python descriptor object:
+
+    http://docs.python.org/reference/datamodel.html#descriptors
+
+  When used in conjection with the PropertiedType meta-class or Propertied
+  class it is possible to build reusable declarative properties that more
+  clearly define how a property is intended to be used.
+
+  An instance of a Property is meant to be associated with a single name
+  on a single class.
+
+  Each property has a '__config__' method to properly sets up the property
+  for use with an associated class.  The default behavior of 'configure' is
+  to indicate to the property what its name will be and to tell it which class
+  it is associated with.  The value of a property for an instance of the
+  assigned class is stored on a private variable of the target class.
+  """
+
+  __name = None
+
+  def __config__(self, cls, name):
+    """Configure property for use.
+
+    Args:
+      name: Name associated with property.
+    """
+    if self.__name:
+      raise IllegalStateError(
+        'Property \'%s\'  is already configured on class \'%s\'' % (
+          self.name, self.cls.__name__))
+    self.__name = name
+    self.__attribute_name = '_%s__%s' % (cls.__name__, name)
+    self.__cls = cls
+
+  @property
+  def name(self):
+    """Name of property."""
+    if not self.__name:
+      raise AttributeError('Property not configured')
+    return self.__name
+
+  @property
+  def cls(self):
+    """Class that property belongs to."""
+    if not self.__name:
+      raise AttributeError('Property not configured')
+    return self.__cls
+
+  def __get__(self, instance, owner):
+    """Get value of property.
+
+    Raises:
+      IllegalStateError: When property has not been configured.
+    """
+    if instance is None:
+      return self
+    else:
+      if self.__name is None:
+        raise AttributeError('Property not configured')
+      return getattr(instance, self.__attribute_name)
+
+  def __set__(self, instance, value):
+    """Set new value for property.
+
+    Raises:
+      IllegalStateError: When property has not been configured.
+    """
+    if self.__name is None:
+      raise AttributeError('Property not configured')
+    setattr(instance, self.__attribute_name, value)
+
+  def __delete__(self, instance):
+    """Delete value of property.
+    
+    Raises:
+      IllegalStateError: When property has not been configured.
+    """
+    if self.__name is None:
+      raise AttributeError('Property not configured')
+    delattr(instance, self.__attribute_name)
+
+
+class StrictProperty(Property):
+  """Property that resticts values to a particular type.
+
+  Attempting to set a value on a strict property that is not of the
+  provided type (other than None) will raise a TypeError.
+
+  Example:
+
+    class Point(HasProps):
+
+      x = StrictProperty(float)
+      y = StrictProperty(float)
+
+    point = Point()
+    point.x = 10
+    point.y = 20
+
+    point.x = '30'  # Raises TypeError
+  """
+
+  def __init__(self, property_type):
+    """Constructor.
+
+    Args:
+      property_type: Type of strict property.  All values assigned to
+        property must be of this type.
+    """
+    self.__property_type = property_type
+
+  @property
+  def property_type(self):
+    """Type of property."""
+    return self.__property_type
+
+  def __set__(self, instance, value):
+    """Assigner.
+
+    Raises:
+      TypeError: If new value is not of the initialized property type.
+    """
+    if not  isinstance(value, self.__property_type):
+      raise TypeError('Property \'%s\' must be type %s' % (
+        self.name, self.__property_type.__name__))
+    super(StrictProperty, self).__set__(instance, value)
+
+
+class ReadOnlyProperty(Property):
+  """Property that may only be set once with non-None value."""
+
+  def __set__(self, instance, value):
+    try:
+      getattr(instance, self.name)
+    except AttributeError:
+      super(ReadOnlyProperty, self).__set__(instance, value)
+    else:
+      raise AttributeError(
+        '\'%s\' object attribute \'%s\' is read-only' % (self.name,
+                                                         self.cls.__name__))
+
+  def __delete__(self, value):
+    raise AttributeError(
+      '\'%s\' object attribute \'%s\' is read-only' % (self.name,
+                                                       self.cls.__name__))

@@ -159,8 +159,6 @@ class ConfigPropsTest(mox.MoxTestBase):
     properties.config_props(TargetClass, {'a': prop1, 'b': prop2})
 
   def testStillConstrains(self):
-    self.__config__ = self.mox.CreateMockAnything()
-    
     class TargetClass(object):
       pass
 
@@ -168,6 +166,21 @@ class ConfigPropsTest(mox.MoxTestBase):
 
     self.assertRaises(TypeError,
                       properties.config_props, TargetClass, {1: self})
+
+  def testNotAttrs(self):
+
+    class TargetClass(object):
+
+      __config_props__ = self.mox.CreateMockAnything()
+      a = 1
+      b = 'str'
+
+    attrs = dict((n, getattr(TargetClass, n)) for n in dir(TargetClass))
+    TargetClass.__config_props__(attrs)
+
+    self.mox.ReplayAll()
+
+    properties.config_props(TargetClass)
 
 
 class PropertiedTypeTest(mox.MoxTestBase):
@@ -270,6 +283,121 @@ class HasPropsTest(mox.MoxTestBase):
                            ('b', HasProps.b)
                           ]),
                       set(HasProps.props()))
+
+
+class PropertyTest(unittest.TestCase):
+
+  def setUp(self):
+    self.C = self.new_class()
+
+  def new_class(self):
+    class C(object):
+      p = properties.Property()
+    return C
+
+  def testInitialState(self):
+    self.assertRaises(AttributeError, getattr, self.C.p, 'name')
+    self.assertRaises(AttributeError, getattr, self.C.p, 'class')
+
+    c = self.C()
+    self.assertRaises(AttributeError, getattr, c, 'p')
+    self.assertRaises(AttributeError, setattr, c, 'p', 1)
+    self.assertRaises(AttributeError, delattr, c, 'p')
+
+  def do_test_set_and_delete(self, c):
+    c.p = 'x'
+    self.assertEquals('x', c.p)
+    c.p = 'y'
+    self.assertEquals('y', c.p)
+
+    del c.p
+    self.assertRaises(AttributeError, getattr, c, 'p')
+    self.assertRaises(AttributeError, delattr, c, 'p')
+
+  def testGetSetAndDelete(self):
+    attrs = {}
+    for name in dir(self.C):
+      attrs[name] = getattr(self.C, name)
+    properties.config_props(self.C, attrs)
+    c = self.C()
+
+    self.assertRaises(AttributeError, getattr, c, 'p')
+    self.assertRaises(AttributeError, delattr, c, 'p')
+
+    self.do_test_set_and_delete(c)
+
+
+class StrictPropertyTest(PropertyTest):
+
+  def new_class(self):
+    class C(object):
+      p = properties.StrictProperty(str)
+      i = properties.StrictProperty(int)
+      s = properties.StrictProperty(basestring)
+    return C
+
+  def testAssignWrongType(self):
+    c = self.C()
+    properties.config_props(self.C)
+
+    # Nones are not an exception
+    self.assertRaises(TypeError, setattr, c, 'p', None)
+    self.assertRaises(TypeError, setattr, c, 'i', None)
+    self.assertRaises(TypeError, setattr, c, 's', None)
+
+    # Must assign str
+    self.assertRaises(TypeError, setattr, c, 'p', u'unicode')
+    self.assertRaises(TypeError, setattr, c, 'p', 1.2)
+    self.assertRaises(TypeError, setattr, c, 'p', 1)
+
+    # Must assign int
+    self.assertRaises(TypeError, setattr, c, 'i', 'str')
+    self.assertRaises(TypeError, setattr, c, 'i', 1.2)
+    self.assertRaises(TypeError, setattr, c, 'i', long(1))
+
+    # Must assign any string
+    self.assertRaises(TypeError, setattr, c, 's', 1.2)
+    self.assertRaises(TypeError, setattr, c, 's', long(1))
+
+  def testAssignRightTypes(self):
+    c = self.C()
+    properties.config_props(self.C)
+
+    c.p = 'a string'
+    self.assertEquals('a string', c.p)
+    c.p = 'another string'
+    self.assertEquals('another string', c.p)
+
+    c.i = 10
+    self.assertEquals(10, c.i)
+    c.i = 20
+    self.assertEquals(20, c.i)
+
+    c.s = 'a str'
+    self.assertEquals('a str', c.s)
+    c.s = u'a unicode'
+    self.assertEquals('a unicode', c.s)
+    c.s = 'another str'
+    self.assertEquals('another str', c.s)
+    c.s = u'another unicode'
+    self.assertEquals('another unicode', c.s)
+
+
+class ReadOnlyPropertyTest(PropertyTest):
+
+  def new_class(self):
+    class C(object):
+      p = properties.ReadOnlyProperty()
+    return C
+
+  def do_test_set_and_delete(self, c):
+    c.p = 'x'
+    self.assertEquals('x', c.p)
+    self.assertRaises(AttributeError, setattr, c, 'p', 'y')
+    self.assertEquals('x', c.p)
+
+    self.assertRaises(AttributeError, delattr, c, 'p')
+    self.assertEquals('x', c.p)
 
 
 if __name__ == '__main__':
