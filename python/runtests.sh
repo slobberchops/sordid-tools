@@ -21,7 +21,7 @@ cd $HERE
 
 if [ 0 -eq $# ]; then
   echo RUN ALL TESTS
-  python -m unittest discover -t "$HERE" -s "$HERE" -p "*_test.py" -c -b
+  python -m unittest discover -t "$HERE" -s "$HERE" -p "*_test.py" -c
 else
-  python -m unittest -c -b $*
+  python -m unittest -c $*
 fi

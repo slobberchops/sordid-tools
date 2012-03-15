@@ -284,6 +284,53 @@ class HasPropsTest(mox.MoxTestBase):
                           ]),
                       set(HasProps.props()))
 
+    hp = HasProps()
+    hp.a = 1
+    hp.b = 2
+    self.assertEquals(1, hp.a)
+    self.assertEquals(2, hp.b)
+
+  def testHasPropsSubclass(self):
+
+    class MyHasProps(properties.HasProps):
+      a = PropDesc()
+      b = PropDesc()
+
+    class MyHasPropsSub(MyHasProps):
+      b = PropDesc()
+      c = PropDesc()
+
+    self.assertEquals(set(['a', 'b', 'c']), set(MyHasPropsSub.prop_names()))
+    self.assertEquals(set([('a', MyHasPropsSub.a),
+                           ('b', MyHasPropsSub.b),
+                           ('c', MyHasPropsSub.c),
+                          ]),
+                      set(MyHasPropsSub.props()))
+    self.assertNotEquals(MyHasProps.b, MyHasPropsSub.b)
+
+    hp = MyHasPropsSub()
+    hp.a = 1
+    hp.b = 2
+    hp.c = 3
+    self.assertEquals(1, hp.a)
+    self.assertEquals(2, hp.b)
+    self.assertEquals(3, hp.c)
+
+  def testNoStrangeInternalState(self):
+
+    class BadDict(object):
+      def iteritems(self):
+        raise AttributeError('unexpected')
+
+    class MyHasProps(properties.HasProps):
+      pass
+    MyHasProps._HasProps__props = BadDict()
+
+    def new_subclass():
+      class MyHasPropsSubclass(MyHasProps):
+        pass
+    self.assertRaises(AttributeError, new_subclass)
+
 
 class PropertyTestMixin(object):
 

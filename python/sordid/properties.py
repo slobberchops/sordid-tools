@@ -163,9 +163,11 @@ class HasProps(Propertied):
   def __config_props__(cls, attrs):
     """Configures and rememberes class properties."""
     try:
-      cls.__props = dict(cls.__props.iteritems())
+      props = cls.__props
     except AttributeError:
       cls.__props = {}
+    else:
+      cls.__props = dict(props.iteritems())
     for name, value in attrs.iteritems():
       config_prop(cls, name, value)
     cls.__prop_names = frozenset(cls.__props.iterkeys())
