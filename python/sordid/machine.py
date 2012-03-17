@@ -17,7 +17,7 @@
 
 import datetime
 
-from sordid import properties
+from sordid import proputils
 from sordid import util
 
 class IllegalStateTransition(Exception):
@@ -112,7 +112,7 @@ class Transition(object):
 
 class Machine(object):
 
-  class __metaclass__(properties.PropertiedType):
+  class __metaclass__(proputils.PropertiedType):
 
     def __init__(cls, name, bases, dct):
       type.__init__(cls, name, bases, dct)

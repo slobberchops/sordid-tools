@@ -19,7 +19,7 @@ import unittest
 
 import mox
 
-from sordid import properties
+from sordid import proputils
 
 
 class ConfigPropNameTest(mox.MoxTestBase):
@@ -33,7 +33,7 @@ class ConfigPropNameTest(mox.MoxTestBase):
   def testNotConfigurable(self):
     for unconfigurable in (1, None, [], {}, 'str'):
       self.assertFalse(
-        properties.config_prop_name(self.target_class, 'a', unconfigurable))
+        proputils.config_prop_name(self.target_class, 'a', unconfigurable))
 
   def testConfigurable(self):
     configurable = self.mox.CreateMockAnything()
@@ -42,23 +42,23 @@ class ConfigPropNameTest(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertTrue(
-      properties.config_prop_name(self.target_class, 'a', configurable))
+      proputils.config_prop_name(self.target_class, 'a', configurable))
 
   def testClassNotType(self):
     for not_class in (1, None, [], {}, 'str'):
       self.assertRaises(TypeError,
-                        properties.config_prop_name,
+                        proputils.config_prop_name,
                         not_class, 'a', 'does not matter')
 
   def testNameNotString(self):
     for not_string in (1, None, [], {}, object):
       self.assertRaises(TypeError,
-                        properties.config_prop_name,
+                        proputils.config_prop_name,
                         self.target_class, not_string, 'does not matter')
 
   def testNameEmpty(self):
     self.assertRaises(ValueError,
-                      properties.config_prop_name,
+                      proputils.config_prop_name,
                       self.target_class, '', 'does not matter')
 
 
@@ -73,7 +73,7 @@ class ConfigPropTest(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEquals(is_prop,
-                      properties.config_prop(TargetClass, 'a', 'prop1'))
+                      proputils.config_prop(TargetClass, 'a', 'prop1'))
 
   def testCustomConfigPropTrue(self):
     self.DoCustomConfigPropTest(True)
@@ -92,7 +92,7 @@ class ConfigPropTest(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertEquals(True,
-                      properties.config_prop(TargetClass, 'a', self))
+                      proputils.config_prop(TargetClass, 'a', self))
 
   def testJustAttributes(self):
 
@@ -108,7 +108,7 @@ class ConfigPropTest(mox.MoxTestBase):
 
     for not_property in (10, 'str', [], {}, None, TargetClass, TargetClass(),
                          TargetClass.a_method, TargetClass.a_class_method):
-      self.assertFalse(properties.config_prop(TargetClass, 'a', not_property))
+      self.assertFalse(proputils.config_prop(TargetClass, 'a', not_property))
       if not_property == TargetClass or isinstance(not_property, TargetClass):
         self.assertEquals('do not overwrite', TargetClass.name)
       else:
@@ -128,7 +128,7 @@ class ConfigPropsTest(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    properties.config_props(TargetClass, {'a': 1})
+    proputils.config_props(TargetClass, {'a': 1})
 
   def testCustomConfigPropMethod(self):
     
@@ -142,7 +142,7 @@ class ConfigPropsTest(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    properties.config_props(TargetClass, {'a': 1, 'b': 2})
+    proputils.config_props(TargetClass, {'a': 1, 'b': 2})
 
   def testCustomConfig(self):
     prop1 = self.mox.CreateMockAnything()
@@ -156,7 +156,7 @@ class ConfigPropsTest(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    properties.config_props(TargetClass, {'a': prop1, 'b': prop2})
+    proputils.config_props(TargetClass, {'a': prop1, 'b': prop2})
 
   def testStillConstrains(self):
     class TargetClass(object):
@@ -165,7 +165,7 @@ class ConfigPropsTest(mox.MoxTestBase):
     self.mox.ReplayAll()
 
     self.assertRaises(TypeError,
-                      properties.config_props, TargetClass, {1: self})
+                      proputils.config_props, TargetClass, {1: self})
 
   def testNotAttrs(self):
 
@@ -180,17 +180,17 @@ class ConfigPropsTest(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    properties.config_props(TargetClass)
+    proputils.config_props(TargetClass)
 
 
 class PropertiedTypeTest(mox.MoxTestBase):
 
   def testMetaClass(self):
-    self.mox.StubOutWithMock(properties, 'config_props')
+    self.mox.StubOutWithMock(proputils, 'config_props')
 
-    properties.config_props(mox.Func(lambda c: c.__name__ == 'MyClass'),
+    proputils.config_props(mox.Func(lambda c: c.__name__ == 'MyClass'),
                             {'__module__': __name__,
-                             '__metaclass__': properties.PropertiedType,
+                             '__metaclass__': proputils.PropertiedType,
                              'a': 'a',
                              'b': 'b',
                              })
@@ -200,7 +200,7 @@ class PropertiedTypeTest(mox.MoxTestBase):
 
     class MyClass(object):
 
-      __metaclass__ = properties.PropertiedType
+      __metaclass__ = proputils.PropertiedType
 
       a = 'a'
       b = 'b'
@@ -219,9 +219,9 @@ class PropDesc(object):
 class PropertiedTest(mox.MoxTestBase):
 
   def testMetaClass(self):
-    self.mox.StubOutWithMock(properties, 'config_props')
+    self.mox.StubOutWithMock(proputils, 'config_props')
 
-    properties.config_props(mox.Func(lambda c: c.__name__ == 'MySubClass'),
+    proputils.config_props(mox.Func(lambda c: c.__name__ == 'MySubClass'),
                             {'__module__': __name__,
                              'a': 1,
                              'b': 2,
@@ -230,7 +230,7 @@ class PropertiedTest(mox.MoxTestBase):
 
     self.mox.ReplayAll()
 
-    class MySubClass(properties.Propertied):
+    class MySubClass(proputils.Propertied):
 
       a = 1
       b = 2
@@ -239,7 +239,7 @@ class PropertiedTest(mox.MoxTestBase):
     prop1 = PropDesc()
     prop2 = PropDesc()
 
-    class MySubClass(properties.Propertied):
+    class MySubClass(proputils.Propertied):
 
       a = 1
       b = 2
@@ -257,7 +257,7 @@ class HasPropsTest(mox.MoxTestBase):
 
   def testHasNoProperties(self):
 
-    class HasNoProps(properties.HasProps):
+    class HasNoProps(proputils.HasProps):
       pass
 
     self.assertEquals(set(), set(HasNoProps.prop_names()))
@@ -265,7 +265,7 @@ class HasPropsTest(mox.MoxTestBase):
 
   def testHasOnlyAttrs(self):
 
-    class HasOnlyAttrs(properties.HasProps):
+    class HasOnlyAttrs(proputils.HasProps):
       a = 1
       b = 2
 
@@ -274,7 +274,7 @@ class HasPropsTest(mox.MoxTestBase):
 
   def testHasProps(self):
 
-    class HasProps(properties.HasProps):
+    class HasProps(proputils.HasProps):
       a = PropDesc()
       b = PropDesc()
 
@@ -292,7 +292,7 @@ class HasPropsTest(mox.MoxTestBase):
 
   def testHasPropsSubclass(self):
 
-    class MyHasProps(properties.HasProps):
+    class MyHasProps(proputils.HasProps):
       a = PropDesc()
       b = PropDesc()
 
@@ -322,7 +322,7 @@ class HasPropsTest(mox.MoxTestBase):
       def iteritems(self):
         raise AttributeError('unexpected')
 
-    class MyHasProps(properties.HasProps):
+    class MyHasProps(proputils.HasProps):
       pass
     MyHasProps._HasProps__props = BadDict()
 
@@ -357,7 +357,7 @@ class PropertyTestMixin(object):
     self.assertRaises(AttributeError, delattr, c, 'p')
 
   def testGetSetAndDelete(self):
-    properties.config_props(self.C)
+    proputils.config_props(self.C)
     c = self.C()
 
     self.assertRaises(AttributeError, getattr, c, 'p')
@@ -370,12 +370,12 @@ class PropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):
-      p = properties.Property()
+      p = proputils.Property()
     return C
 
   def testOverridableGetProperty(self):
 
-    class CalcProp(properties.Property):
+    class CalcProp(proputils.Property):
 
       def __init__(self):
         self.count = 0
@@ -384,7 +384,7 @@ class PropertyTest(PropertyTestMixin, unittest.TestCase):
         self.count += 1
         return 'I am calculated: %d' % self.count
 
-    class HasCalc(properties.Propertied):
+    class HasCalc(proputils.Propertied):
       calc = CalcProp()
 
     instance = HasCalc()
@@ -398,14 +398,14 @@ class StrictPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):
-      p = properties.StrictProperty(str)
-      i = properties.StrictProperty(int)
-      s = properties.StrictProperty(basestring)
+      p = proputils.StrictProperty(str)
+      i = proputils.StrictProperty(int)
+      s = proputils.StrictProperty(basestring)
     return C
 
   def testAssignWrongType(self):
     c = self.C()
-    properties.config_props(self.C)
+    proputils.config_props(self.C)
 
     # Nones are not an exception
     self.assertRaises(TypeError, setattr, c, 'p', None)
@@ -428,7 +428,7 @@ class StrictPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def testAssignRightTypes(self):
     c = self.C()
-    properties.config_props(self.C)
+    proputils.config_props(self.C)
 
     c.p = 'a string'
     self.assertEquals('a string', c.p)
@@ -454,7 +454,7 @@ class ReadOnlyPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):
-      p = properties.ReadOnlyProperty()
+      p = proputils.ReadOnlyProperty()
     return C
 
   def do_test_set_and_delete(self, c):

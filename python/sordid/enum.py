@@ -15,13 +15,13 @@
 # limitations under the License.
 #
 
-from sordid import properties
+from sordid import proputils
 
 class EnumDefinitionError(Exception):
   """Raised when enum is incorrectly defined."""
 
 
-class EnumType(properties.PropertiedType):
+class EnumType(proputils.PropertiedType):
   """Enum type meta-class.
 
   Does automatic initialization of Enum classes.  See Enum for more details.
@@ -51,7 +51,7 @@ class EnumType(properties.PropertiedType):
         setattr(cls, attribute, enum_value)
 
     cls.__self_ref = cls
-    properties.PropertiedType.__init__(cls, name, bases, dct)
+    proputils.PropertiedType.__init__(cls, name, bases, dct)
 
   @staticmethod
   def is_enum_init(enum_class):
