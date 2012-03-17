@@ -394,6 +394,21 @@ class PropertyTest(PropertyTestMixin, unittest.TestCase):
     self.assertEquals('I am calculated: 3', instance.calc)
 
 
+class ValidatedPropertyTest(PropertyTestMixin, unittest.TestCase):
+
+  def new_class(self):
+    class C(object):
+      @proputils.ValidatedProperty
+      def p(value):
+        return bool(value)
+    return C
+
+  def testFailValidation(self):
+    c = self.C()
+    proputils.config_props(self.C)
+    self.assertRaises(ValueError, setattr, c, 'p', False)
+
+
 class StrictPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):

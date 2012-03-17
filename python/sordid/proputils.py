@@ -276,7 +276,72 @@ class Property(object):
     delattr(instance, self.__attribute_name)
 
 
-class StrictProperty(Property):
+class ReadOnlyProperty(Property):
+  """Property that may only be set once with non-None value."""
+
+  def __set__(self, instance, value):
+    try:
+      getattr(instance, self.name)
+    except AttributeError:
+      super(ReadOnlyProperty, self).__set__(instance, value)
+    else:
+      raise AttributeError(
+        '\'%s\' object attribute \'%s\' is read-only' % (self.name,
+                                                         self.cls.__name__))
+
+  def __delete__(self, value):
+    raise AttributeError(
+      '\'%s\' object attribute \'%s\' is read-only' % (self.name,
+                                                       self.cls.__name__))
+
+
+class ValidatedProperty(Property):
+  """Property that provides some type of validation.
+
+  Provide a validation function to validate upon assignment each
+  value to property.
+
+    Example:
+
+      class UnsignedInt(Propertied):
+
+        @ValidatedProperty
+        def value(value):
+          return value >= 0
+
+      i = UnsignedInt()
+      i.value = 0
+      i.value = 1
+      i.value = -1  # Raises ValueError
+  """
+
+  def __init__(self, validator=None):
+    """Constructor.
+
+    Args:
+      validator: Validation function that a value meant for assignment to
+        property and returns True if valid, else False.
+    """
+    self.__validator = validator
+
+  def __set__(self, instance, value):
+    """Set value of validated property.
+
+    Args:
+      instance: Object that will receive property value.
+      value: New value for property.
+
+    Raises:
+      ValueError: If property is not correct value.
+    """
+    if not self.__validator(value):
+      raise ValueError('Value \'%r\' is not valid '
+                       'for property \'%s\' on \'%s\'' % (
+                         value, self.name, self.cls.__name__))
+    super(ValidatedProperty, self).__set__(instance, value)
+
+
+class StrictProperty(ValidatedProperty):
   """Property that resticts values to a particular type.
 
   Attempting to set a value on a strict property that is not of the
@@ -303,39 +368,15 @@ class StrictProperty(Property):
       property_type: Type of strict property.  All values assigned to
         property must be of this type.
     """
+    def validator(value):
+      if not isinstance(value, property_type):
+        raise TypeError('Property \'%s\' must be type %s' % (
+          self.name, self.__property_type.__name__))
+      return True
     self.__property_type = property_type
+    super(StrictProperty, self).__init__(validator)
 
   @property
   def property_type(self):
     """Type of property."""
     return self.__property_type
-
-  def __set__(self, instance, value):
-    """Assigner.
-
-    Raises:
-      TypeError: If new value is not of the initialized property type.
-    """
-    if not  isinstance(value, self.__property_type):
-      raise TypeError('Property \'%s\' must be type %s' % (
-        self.name, self.__property_type.__name__))
-    super(StrictProperty, self).__set__(instance, value)
-
-
-class ReadOnlyProperty(Property):
-  """Property that may only be set once with non-None value."""
-
-  def __set__(self, instance, value):
-    try:
-      getattr(instance, self.name)
-    except AttributeError:
-      super(ReadOnlyProperty, self).__set__(instance, value)
-    else:
-      raise AttributeError(
-        '\'%s\' object attribute \'%s\' is read-only' % (self.name,
-                                                         self.cls.__name__))
-
-  def __delete__(self, value):
-    raise AttributeError(
-      '\'%s\' object attribute \'%s\' is read-only' % (self.name,
-                                                       self.cls.__name__))
