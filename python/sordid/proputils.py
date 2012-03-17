@@ -170,8 +170,6 @@ class HasProps(Propertied):
       cls.__props = dict(props.iteritems())
     for name, value in attrs.iteritems():
       config_prop(cls, name, value)
-    cls.__prop_names = frozenset(cls.__props.iterkeys())
-    cls.__prop_set = frozenset(cls.__props.iteritems())
 
   @classmethod
   def __config_prop__(cls, name, value):
@@ -182,12 +180,12 @@ class HasProps(Propertied):
   @classmethod
   def prop_names(cls):
     """Iterable of all property names."""
-    return cls.__prop_names
+    return cls.__props.iterkeys()
 
   @classmethod
   def props(cls):
     """Iterable of all property descriptors."""
-    return cls.__prop_set
+    return cls.__props.iteritems()
 
 
 class Property(object):
