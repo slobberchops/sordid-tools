@@ -23,6 +23,7 @@ from sordid import util
 class IllegalStateTransition(Exception):
   pass
 
+
 class State(util.SourceOrdered):
 
   @property
