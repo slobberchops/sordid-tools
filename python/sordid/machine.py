@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2011 Rafe Kaplan
+# Copyright 2012 Rafe Kaplan
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
