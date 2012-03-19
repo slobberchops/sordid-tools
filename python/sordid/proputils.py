@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import operator
+
 
 def config_props(cls, attrs=None):
   """Configure all properties found on a class instance.
@@ -341,6 +343,126 @@ class ValidatedProperty(Property):
     super(ValidatedProperty, self).__set__(instance, value)
 
 
+class Validator(object):
+  """Base class validator class.
+
+  Though not required to make a property validator, this class
+  helps make writing them easier by providing some basic operator support.
+
+  It is possible to use binary logical operators to construct validators
+  from basic ones.
+
+  Example:
+
+    class Person(Propertied):
+
+      # ID is required to be a non-empty string.
+      id = ValidatedProperty(not EMPTY & type_validator(str))
+
+      # Name is required to be a non-empty string or None.
+      name = ValidatedProperty(NONE | (not EMPTY & type_validator(str)))
+
+      # The operators will also work normally for any function.  For example
+      # 'all' is the builtin python function 'all' which has the signature
+      # of a validator.
+      nicknames = ValidatedProperty(type_validator(tuple) & all)
+  """
+
+  def __init__(self, validator_func):
+    """Constructor.
+
+    Args:
+      validator_func: Function used for validating a new value.
+    """
+    self.__validator_func = validator_func
+
+  def __call__(self, value):
+    """Allows this validator object to be used as a validator function."""
+    return self.__validator_func(value)
+
+  def __and__(self, other):
+    """Creates a validator requires both validators to be true."""
+    @Validator
+    def and_validator(value):
+      return self(value) and other(value)
+    return and_validator
+
+  def __or__(self, other):
+    """Creates a validator requires either validator to be true."""
+    @Validator
+    def or_validator(value):
+      return self(value) or other(value)
+    return or_validator
+
+  def __invert__(self):
+    """Creates inverse of a validator."""
+    @Validator
+    def not_validator(value):
+      return not self(value)
+    return not_validator
+
+
+def validator_def(definition):
+  """Makes validator factory functions always return Validators.
+
+  Helper for wrapping functions that returns configured validators so that
+  they always return Validator objects.
+
+  Example:
+
+    @validator_decorator
+    def regex_validator(regex):
+      compiled_regex = re.compile(regex)
+      def regex_validator_func(value):
+        return bool(compiled_regex.match(value))
+      return regex_validator
+
+    # Operators will work.
+    email_validator = regex_validator('.+@.+') | NONE
+
+  Args:
+    definition: A validator factory function that takes any number of
+      parameters and returns a validator function.
+
+  Returns:
+    A validator factory function that takes the same parameters as 'definition'
+    and returns a Validator object that wraps 'definitions's returned validator.
+  """
+  def validator_decorator(*args, **kwargs):
+    return Validator(definition(*args, **kwargs))
+  validator_decorator.__name__ = definition.__name__
+  return validator_decorator
+
+
+@validator_def
+def type_validator(property_type):
+  """Create validator that requires specific type.
+
+  Args:
+    property_type: The type of the validator.
+
+  Returns:
+    Validator that only accepts values of a specific type.
+  """
+  def type_validator_impl(value):
+    if not isinstance(value, property_type):
+      raise TypeError('Property must be type %s' % property_type.__name__)
+    return True
+  return type_validator_impl
+
+
+@Validator
+def NONE(value):
+  """Constant validator that requires None value."""
+  return value is None
+
+
+@Validator
+def EMPTY(value):
+  """Constant validator that requires empty values (allows None)."""
+  return not bool(value)
+
+
 class StrictProperty(ValidatedProperty):
   """Property that resticts values to a particular type.
 
@@ -368,11 +490,7 @@ class StrictProperty(ValidatedProperty):
       property_type: Type of strict property.  All values assigned to
         property must be of this type.
     """
-    def validator(value):
-      if not isinstance(value, property_type):
-        raise TypeError('Property \'%s\' must be type %s' % (
-          self.name, self.__property_type.__name__))
-      return True
+    validator = type_validator(property_type)
     self.__property_type = property_type
     super(StrictProperty, self).__init__(validator)
 

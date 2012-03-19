@@ -347,13 +347,20 @@ class PropertyTestMixin(object):
     self.assertRaises(AttributeError, getattr, c, 'p')
     self.assertRaises(AttributeError, delattr, c, 'p')
 
-  def testInitialState(self):
+  def testInitialState_ClassAttributes(self):
     self.assertRaises(AttributeError, getattr, self.C.p, 'name')
     self.assertRaises(AttributeError, getattr, self.C.p, 'class')
 
+  def testInitialState_Get(self):
     c = self.C()
     self.assertRaises(AttributeError, getattr, c, 'p')
+
+  def testInitialState_Set(self):
+    c = self.C()
     self.assertRaises(AttributeError, setattr, c, 'p', 1)
+
+  def testInitialState_Delete(self):
+    c = self.C()
     self.assertRaises(AttributeError, delattr, c, 'p')
 
   def testGetSetAndDelete(self):
@@ -394,6 +401,150 @@ class PropertyTest(PropertyTestMixin, unittest.TestCase):
     self.assertEquals('I am calculated: 3', instance.calc)
 
 
+class ValidatorTest(mox.MoxTestBase):
+
+  def testBasicValidator(self):
+    val_func = self.mox.CreateMockAnything()
+    val = proputils.Validator(val_func)
+
+    val_func(1).AndReturn(False)
+    val_func(2).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertFalse(val(1))
+    self.assertTrue(val(2))
+
+  def testAnd(self):
+    val_func1 = self.mox.CreateMockAnything()
+    val_func2 = self.mox.CreateMockAnything()
+
+    val1 = proputils.Validator(val_func1)
+    val2 = proputils.Validator(val_func2)
+
+    and_val = val1 & val2
+
+    val_func1(1).AndReturn(False)
+
+    val_func1(2).AndReturn(True)
+    val_func2(2).AndReturn(False)
+
+    val_func1(3).AndReturn(True)
+    val_func2(3).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertFalse(and_val(1))
+    self.assertFalse(and_val(2))
+    self.assertTrue(and_val(3))
+
+  def testOr(self):
+    val_func1 = self.mox.CreateMockAnything()
+    val_func2 = self.mox.CreateMockAnything()
+
+    val1 = proputils.Validator(val_func1)
+    val2 = proputils.Validator(val_func2)
+
+    or_val = val1 | val2
+
+    val_func1(1).AndReturn(False)
+    val_func2(1).AndReturn(False)
+
+    val_func1(2).AndReturn(True)
+
+    val_func1(3).AndReturn(False)
+    val_func2(3).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertFalse(or_val(1))
+    self.assertTrue(or_val(2))
+    self.assertTrue(or_val(3))
+
+  def testNot(self):
+    val_func = self.mox.CreateMockAnything()
+
+    val = ~proputils.Validator(val_func)
+
+    val_func(1).AndReturn(False)
+    val_func(2).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertTrue(val(1))
+    self.assertFalse(val(2))
+
+  def testFuncValidatorOperators(self):
+    val_func1 = self.mox.CreateMockAnything()
+    val_func2 = self.mox.CreateMockAnything()
+
+    val = proputils.Validator(val_func1)
+
+    or_val = val | val_func2
+
+    val_func1(1).AndReturn(False)
+    val_func2(1).AndReturn(False)
+
+    val_func1(2).AndReturn(True)
+
+    val_func1(3).AndReturn(False)
+    val_func2(3).AndReturn(True)
+
+    self.mox.ReplayAll()
+
+    self.assertFalse(or_val(1))
+    self.assertTrue(or_val(2))
+    self.assertTrue(or_val(3))
+
+
+class ConstantsTest(unittest.TestCase):
+
+  def testNone(self):
+    self.assertTrue(proputils.NONE(None))
+    self.assertFalse(proputils.NONE(1))
+    self.assertFalse(proputils.NONE(0))
+    self.assertFalse(proputils.NONE(''))
+    self.assertFalse(proputils.NONE('str'))
+    self.assertFalse(proputils.NONE([]))
+
+  def testEmpty(self):
+    self.assertTrue(proputils.EMPTY(None))
+    self.assertFalse(proputils.EMPTY(1))
+    self.assertTrue(proputils.EMPTY(0))
+    self.assertTrue(proputils.EMPTY(''))
+    self.assertFalse(proputils.EMPTY('str'))
+    self.assertTrue(proputils.EMPTY([]))
+    self.assertFalse(proputils.EMPTY([1]))
+
+
+class ValidatorDefTest(unittest.TestCase):
+
+  def testValidatorDef(self):
+    @proputils.validator_def
+    def gt_val(number):
+      def gt(value):
+        return value > number
+      return gt
+
+    more_than_7 = gt_val(7)
+
+    self.assertFalse(more_than_7(7))
+    self.assertTrue(more_than_7(8))
+
+    @proputils.validator_def
+    def lt_val(number):
+      def lt(value):
+        return value < number
+      return lt
+
+    not_between_2_and_8 = more_than_7 | lt_val(3)
+
+    self.assertTrue(not_between_2_and_8(2))
+    self.assertFalse(not_between_2_and_8(3))
+    self.assertFalse(not_between_2_and_8(7))
+    self.assertTrue(not_between_2_and_8(8))
+
+
 class ValidatedPropertyTest(PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
@@ -417,6 +568,10 @@ class StrictPropertyTest(PropertyTestMixin, unittest.TestCase):
       i = proputils.StrictProperty(int)
       s = proputils.StrictProperty(basestring)
     return C
+
+  def testInitialState_Set(self):
+    c = self.C()
+    self.assertRaises(TypeError, setattr, c, 'p', 1)
 
   def testAssignWrongType(self):
     c = self.C()
