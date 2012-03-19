@@ -27,7 +27,7 @@ class MachineTest(unittest.TestCase):
       pass
 
     mach = machine.Machine()
-    self.assertEquals(None, mach.state)
+    self.assertFalse(hasattr(mach, 'state'))
 
   def testInitialStateDocumentOrder(self):
     class Alphabetical(machine.Machine):
@@ -56,10 +56,10 @@ class MachineTest(unittest.TestCase):
     mach = HasTransition()
     self.assertEquals(HasTransition.b,
                       mach.A.next_state)
-    mach.set_state(mach.b)
+    mach.state = mach.b
     self.assertEquals(None,
                       mach.A.next_state)
-    mach.set_state(mach.c)
+    mach.state = mach.c
     self.assertEquals(HasTransition.a,
                       mach.A.next_state)
 

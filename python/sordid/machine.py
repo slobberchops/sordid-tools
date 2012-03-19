@@ -18,21 +18,18 @@
 import datetime
 
 from sordid import proputils
+from sordid import propval
 from sordid import util
 
 class IllegalStateTransition(Exception):
   pass
 
 
-class State(util.SourceOrdered):
+class State(util.SourceOrdered, proputils.HasProps):
 
-  @property
-  def name(self):
-    return self.__name
+  name = proputils.ReadOnlyProperty()
 
-  @property
-  def machine(self):
-    return self.__machine
+  machine = proputils.ReadOnlyProperty()
 
   def __str__(self):
     try:
@@ -57,15 +54,13 @@ class State(util.SourceOrdered):
     return self.__string_value
 
 
-class Transitioner(object):
+class Transitioner(proputils.HasProps):
 
   def __init__(self, machine, transition):
-    self.__machine = machine
+    self.machine = machine
     self.__transition = transition
 
-  @property
-  def machine(self):
-    return self.__machine
+  machine = proputils.ReadOnlyProperty()
 
   @property
   def transition(self):
@@ -77,7 +72,7 @@ class Transitioner(object):
       raise IllegalTransitionError(
         'There is no transition %s from state %s for %s' % (
           self.transition.name, current_state, self.__transition))
-    self.machine.set_state(next_state)
+    self.machine.state = next_state
     return next_state
 
   @property
@@ -111,60 +106,61 @@ class Transition(object):
     return self.__state_map.get(state, None)
 
 
-class Machine(object):
-
-  class __metaclass__(proputils.PropertiedType):
-
-    def __init__(cls, name, bases, dct):
-      type.__init__(cls, name, bases, dct)
-      state_by_name = {}
-      transition_by_name = {}
-      for attribute, value in dct.iteritems():
-        if isinstance(value, State) and attribute != 'INIT':
-          value._State__name = attribute
-          value._State__machine = cls
-          state_by_name[attribute] = value
-        if isinstance(value, Transition):
-          transition_by_name[attribute] = value
-
-      cls.__state_by_name = state_by_name
-      cls.__transition_by_name = transition_by_name
-
-      if len(state_by_name) > 0:
-        initial_state = getattr(cls, '_Machine__INIT', None)
-        if initial_state is None:
-          states = sorted(state_by_name.itervalues(),
-                          key=lambda state: state.source_order)
-          cls._Machine__INIT = states[0]
-
-    def lookup_state(cls, name):
-      return cls.__state_by_name.get(name, None)
-
-    def lookup_transition(cls, name):
-      return cls.__transition_by_name.get(name, None)
-
-    def iter_transitions(cls):
-      return cls.__transition_by_name.iteritems()
+class Machine(proputils.HasProps):
 
   def __init__(self):
     try:
-      initial_state = self.__INIT
+      initial_state = self.INIT
     except AttributeError:
-      initial_state = None
-    self.set_state(initial_state)
+      pass
+    else:
+      self.state = initial_state
 
     for name, transition in type(self).iter_transitions():
       assert transition is not None
       setattr(self, name, Transitioner(self, transition))
 
-  @property
-  def INIT(self):
-    return self.__INIT
+  @classmethod
+  def __config_props__(cls, attrs):
+    cls.__state_by_name = {}
+    cls.__transition_by_name = {}
+    for name, value in attrs.iteritems():
+      proputils.config_prop(cls, name, value)
 
-  def set_state(self, state):
-    self.__state = state
+    cls.state_names = sorted(cls.__state_by_name.itervalues(),
+                             key=lambda state: state.source_order)
 
-  @property
-  def state(self):
-    return self.__state
-   
+    if cls.__state_by_name:
+      first_state_name = cls.state_names[0]
+      try:
+        cls.INIT = first_state_name
+      except AttributeError:
+        pass
+
+  @classmethod
+  def __config_prop__(cls, name, value):
+    if not proputils.config_prop_name(cls, name, value):
+      if isinstance(value, State):
+        value.name = name
+        value.machine = cls
+        cls.__state_by_name[name] = value
+      if isinstance(value, Transition):
+        cls.__transition_by_name[name] = value
+
+  @classmethod
+  def lookup_state(cls, name):
+    return cls.__state_by_name.get(name, None)
+
+  @classmethod
+  def lookup_transition(cls, name):
+    return cls.__transition_by_name.get(name, None)
+
+  @classmethod
+  def iter_transitions(cls):
+    return cls.__transition_by_name.iteritems()
+
+  INIT = proputils.ReadOnlyProperty()
+
+  state = propval.ValidatedProperty(propval.type_validator(State))
+
+  state_names = proputils.ReadOnlyProperty()
