@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import operator
+
 from . import proputils
 
 
@@ -219,3 +221,61 @@ class StrictProperty(ValidatedProperty):
   def property_type(self):
     """Type of property."""
     return self.__property_type
+
+
+class CMP(Validator):
+    """Comparison validator.
+
+    Validation based on a binary operator.  Meta-class has operator methods overloaded so may be combined using normal
+    comparison operators.  For example:
+
+        class Point(HasProps):
+            '''A point for a grid 100 units by 100 units.'''
+
+            x = CMP >= 0 & CMP <= 100
+            y = CMP >= 0 & CMP <= 100
+    """
+
+    def __init__(self, binop, constant):
+        """Constructor.
+
+        Args:
+            binop: A function that takes two parameters and returns boolean value.
+        """
+        def validator(value):
+            return binop(value, constant)
+        self.__binop = binop
+        super(CMP, self).__init__(validator)
+
+    @property
+    def binop(self):
+        """Binop associated with this validator."""
+        return self.__binop
+
+    class __metaclass__(type):
+
+        def __lt__(cls, constant):
+            return cls(operator.lt, constant)
+
+        def __le__(cls, constant):
+            return cls(operator.le, constant)
+
+        def __gt__(cls, constant):
+            return cls(operator.gt, constant)
+
+        def __ge__(cls, constant):
+            return cls(operator.ge, constant)
+
+
+@validator_def
+def is_in(constant):
+    """Create validator to check whether value is in a constant set of values."""
+    return lambda value: value in constant
+
+def validated_property_def(validator):
+    """Helper function for defining reusable validated classes."""
+    class _ValidatedProperty(ValidatedProperty):
+
+        def __init__(self):
+            super(_ValidatedProperty, self).__init__(validator)
+    return _ValidatedProperty

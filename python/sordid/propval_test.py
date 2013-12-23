@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import operator
+
 import unittest
 
 import mox
@@ -243,6 +245,46 @@ class StrictPropertyTest(proputils_test.PropertyTestMixin,
     self.assertEquals('another str', c.s)
     c.s = u'another unicode'
     self.assertEquals('another unicode', c.s)
+
+
+class CmpTest(unittest.TestCase):
+
+    def testBinop(self):
+        validator = propval.CMP(operator.gt, 10)
+        self.assertFalse(validator(10))
+        self.assertTrue(validator(11))
+
+    def testLt(self):
+        validator = propval.CMP < 10
+        self.assertFalse(validator(10))
+        self.assertTrue(validator(9))
+
+    def testLe(self):
+        validator = propval.CMP <= 10
+        self.assertFalse(validator(11))
+        self.assertTrue(validator(10))
+
+    def testGt(self):
+        validator = propval.CMP > 10
+        self.assertFalse(validator(10))
+        self.assertTrue(validator(11))
+
+    def testGe(self):
+        validator = propval.CMP >= 10
+        self.assertFalse(validator(9))
+        self.assertTrue(validator(10))
+
+
+class IsInTest(unittest.TestCase):
+
+    def testIn(self):
+        validator = propval.is_in([10, 20, 30])
+        self.assertFalse(validator(11))
+        self.assertTrue(validator(10))
+        self.assertFalse(validator(21))
+        self.assertTrue(validator(20))
+        self.assertFalse(validator(31))
+        self.assertTrue(validator(30))
 
 
 if __name__ == '__main__':
