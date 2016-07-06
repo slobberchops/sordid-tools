@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import httplib
 import unittest
 from wsgiref import util as wsgi_util
 
@@ -26,15 +25,16 @@ def define_test_app(message):
   """Create a simple test application with custom message"""
   def test_app(environ, start_response):
     response_headers = [('content-type', 'text/plain')]
-    for name, value in environ.iteritems():
+    for name, value in environ.items():
       if name.startswith('HTTP_'):
         header_name = name[len('HTTP_'):].lower().replace('_', '-')
         if header_name.startswith('header'):
           response_headers.append((header_name, 'echo: ' + value))
     start_response('200 OK', response_headers)
-    return ['\n'.join(['Uri: %s' % wsgi_util.request_uri(environ),
-                       'Method: %s' % environ['REQUEST_METHOD'],
-                       message])]
+    response_string = '\n'.join(['Uri: %s' % wsgi_util.request_uri(environ),
+                                 'Method: %s' % environ['REQUEST_METHOD'],
+                                message])
+    return [str.encode(response_string)]
   return test_app
 
 
@@ -47,10 +47,10 @@ class WsgiTestTest(test_util.WsgiTest):
                             {'header-1': 'a-value'})
     response = self.connection.getresponse()
     self.assertEquals('echo: a-value', response.getheader('header-1'))
-    self.assertEquals('Uri: http://localhost:%d/some_path\n'
-                      'Method: POST\n'
-                      'class-attribute' %
-                      self.port,
+    self.assertEquals(str.encode('Uri: http://localhost:%d/some_path\n'
+                                 'Method: POST\n'
+                                 'class-attribute' %
+                                 self.port),
                       response.read())
 
   @test_util.with_app(define_test_app('from-with-app'))
@@ -59,10 +59,10 @@ class WsgiTestTest(test_util.WsgiTest):
                             {'header-1': 'a-value'})
     response = self.connection.getresponse()
     self.assertEquals('echo: a-value', response.getheader('header-1'))
-    self.assertEquals('Uri: http://localhost:%d/some_path\n'
-                      'Method: POST\n'
-                      'from-with-app' %
-                      self.port,
+    self.assertEquals(str.encode('Uri: http://localhost:%d/some_path\n'
+                                 'Method: POST\n'
+                                 'from-with-app' %
+                                 self.port),
                       response.read())
 
 

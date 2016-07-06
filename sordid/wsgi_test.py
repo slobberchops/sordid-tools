@@ -23,22 +23,22 @@ from sordid import wsgi
 
 class StaticServerTest(test_util.WsgiTest):
 
-  @test_util.with_app(wsgi.static(content='This is content'))
+  @test_util.with_app(wsgi.static(content=b'This is content'))
   def test_basic_content(self):
     response = self.do_request()
     self.assertEquals(200, response.status)
     self.assertEquals('OK', response.reason)
     self.assertEquals('text/html', response.getheader('content-type'))
-    self.assertEquals('This is content', response.read())
+    self.assertEquals(b'This is content', response.read())
 
-  @test_util.with_app(wsgi.static(content='This is content',
+  @test_util.with_app(wsgi.static(content=b'This is content',
                                   content_type='text/plain'))
   def test_other_content_type(self):
     response = self.do_request()
     self.assertEquals(200, response.status)
     self.assertEquals('OK', response.reason)
     self.assertEquals('text/plain', response.getheader('content-type'))
-    self.assertEquals('This is content', response.read())
+    self.assertEquals(b'This is content', response.read())
 
   @test_util.with_app(wsgi.static(404))
   def test_integer_status(self):
@@ -46,7 +46,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals(404, response.status)
     self.assertEquals('Not Found', response.reason)
     self.assertEquals('text/html', response.getheader('content-type'))
-    self.assertEquals('', response.read())
+    self.assertEquals(b'', response.read())
 
   @test_util.with_app(wsgi.static('500 Some Kind Of Error'))
   def test_string_status(self):
@@ -54,7 +54,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals(500, response.status)
     self.assertEquals('Some Kind Of Error', response.reason)
     self.assertEquals('text/html', response.getheader('content-type'))
-    self.assertEquals('', response.read())
+    self.assertEquals(b'', response.read())
 
   @test_util.with_app(wsgi.static((400, 'Bad Something')))
   def test_tuple_status(self):
@@ -62,7 +62,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals(400, response.status)
     self.assertEquals('Bad Something', response.reason)
     self.assertEquals('text/html', response.getheader('content-type'))
-    self.assertEquals('', response.read())
+    self.assertEquals(b'', response.read())
 
   @test_util.with_app(wsgi.static(headers={'header-1': 'value-1',
                                            'header-2': 'value-2'}))
@@ -73,7 +73,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/html', response.getheader('content-type'))
     self.assertEquals('value-1', response.getheader('header-1'))
     self.assertEquals('value-2', response.getheader('header-2'))
-    self.assertEquals('', response.read())
+    self.assertEquals(b'', response.read())
 
   @test_util.with_app(wsgi.static(headers=[('header-1', 'value-1'),
                                            ('header-2', 'value-2')]))
@@ -84,45 +84,45 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/html', response.getheader('content-type'))
     self.assertEquals('value-1', response.getheader('header-1'))
     self.assertEquals('value-2', response.getheader('header-2'))
-    self.assertEquals('', response.read())
+    self.assertEquals(b'', response.read())
 
 
 class ChooseTest(test_util.WsgiTest):
 
   @test_util.with_app(wsgi.choose(
-    wsgi.static(400, 'first', headers={'a': '1'}),
-    wsgi.static(500, 'second', headers={'a': '2'}),
-    wsgi.static(300, 'third', headers={'a': '3'})))
+    wsgi.static(400, b'first', headers={'a': '1'}),
+    wsgi.static(500, b'second', headers={'a': '2'}),
+    wsgi.static(300, b'third', headers={'a': '3'})))
   def test_match_first(self):
     response = self.do_request()
     self.assertEquals(400, response.status)
-    self.assertEquals('first', response.read())
+    self.assertEquals(b'first', response.read())
     self.assertEquals('1', response.getheader('a'))
 
   @test_util.with_app(wsgi.choose(
-    wsgi.static(404, 'first', headers={'a': '1'}),
-    wsgi.static(500, 'second', headers={'a': '2'}),
-    wsgi.static(300, 'third', headers={'a': '3'})))
+    wsgi.static(404, b'first', headers={'a': '1'}),
+    wsgi.static(500, b'second', headers={'a': '2'}),
+    wsgi.static(300, b'third', headers={'a': '3'})))
   def test_match_second(self):
     response = self.do_request()
     self.assertEquals(500, response.status)
-    self.assertEquals('second', response.read())
+    self.assertEquals(b'second', response.read())
     self.assertEquals('2', response.getheader('a'))
 
   @test_util.with_app(wsgi.choose(
-    wsgi.static(404, 'first', headers={'a': '1'}),
-    wsgi.static(404, 'second', headers={'a': '2'}),
-    wsgi.static(300, 'third', headers={'a': '3'})))
+    wsgi.static(404, b'first', headers={'a': '1'}),
+    wsgi.static(404, b'second', headers={'a': '2'}),
+    wsgi.static(300, b'third', headers={'a': '3'})))
   def test_match_third(self):
     response = self.do_request()
     self.assertEquals(300, response.status)
-    self.assertEquals('third', response.read())
+    self.assertEquals(b'third', response.read())
     self.assertEquals('3', response.getheader('a'))
 
   def test_no_apps(self):
     try:
       wsgi.choose()
-    except TypeError, err:
+    except TypeError as err:
       self.assertEquals('Choose function requires at least two applications',
                         str(err))
     else:
@@ -131,7 +131,7 @@ class ChooseTest(test_util.WsgiTest):
   def test_only_one_app(self):
     try:
       wsgi.choose(wsgi.HTTP_INTERNAL_SERVER_ERROR)
-    except TypeError, err:
+    except TypeError as err:
       self.assertEquals('Choose function requires at least two applications',
                         str(err))
     else:
@@ -147,24 +147,24 @@ def chained(name):
     else:
       content = []
       start_response('200 OK', [('content-type', 'text/plain')])
-    return content + [name + ' ']
+    return content + [name + b' ']
   return chained_app
 
 
 class ChainTest(test_util.WsgiTest):
 
-  @test_util.with_app(wsgi.chain(chained('app1'),
-                                 chained('app2'),
-                                 chained('app3')))
+  @test_util.with_app(wsgi.chain(chained(b'app1'),
+                                 chained(b'app2'),
+                                 chained(b'app3')))
   def test_chain(self):
     response = self.do_request()
     self.assertEquals(200, response.status)
-    self.assertEquals('app3 app2 app1 ', response.read())
+    self.assertEquals(b'app3 app2 app1 ', response.read())
 
   def test_no_apps(self):
     try:
       wsgi.chain()
-    except TypeError, err:
+    except TypeError as err:
       self.assertEquals('Chain function requires at least two applications',
                         str(err))
     else:
@@ -173,7 +173,7 @@ class ChainTest(test_util.WsgiTest):
   def test_only_one_app(self):
     try:
       wsgi.chain(wsgi.HTTP_INTERNAL_SERVER_ERROR)
-    except TypeError, err:
+    except TypeError as err:
       self.assertEquals('Chain function requires at least two applications',
                         str(err))
     else:

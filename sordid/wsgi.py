@@ -15,8 +15,7 @@
 # limitations under the License.
 #
 
-import logging
-import httplib
+import http.client as httplib
 
 from sordid import util
 
@@ -24,7 +23,7 @@ NEXT_APP_ENVIRON = 'sordid.next.app'
 
 
 @util.positional(2)
-def static(code=200, content='', headers={},
+def static(code=200, content='', headers=None,
            content_type='text/html'):
   """Static content application.
 
@@ -38,17 +37,19 @@ def static(code=200, content='', headers={},
     headers: Additional headers to send in response.
     content_type: Content-type of response.
   """
-  if isinstance(code, (int, long)):
+  headers = {} if headers is None else headers
+
+  if isinstance(code, int):
     code = '%d %s' % (code, httplib.responses.get(code, 'Unknown Status'))
-  elif not isinstance(code, basestring):
+  elif not isinstance(code, str):
     code = '%d %s' % code
 
   if isinstance(headers, dict):
-    headers = headers.items()
+    headers = list(headers.items())
 
   headers.append(('content-type', content_type))
 
-  if isinstance(content, basestring):
+  if isinstance(content, bytes):
     content = (content,)
   else:
     content = tuple(content)
@@ -125,7 +126,7 @@ def _define_standard_responses():
     if description is None:
       splitted = (part.capitalize() for part in name.split('_'))
       description = ' '.join(splitted)
-    globals()['HTTP_' + name] = static((code, description))
+    globals()['HTTP_' + name] = static((code, str.encode(description)))
 _define_standard_responses()
 del _define_standard_responses
 

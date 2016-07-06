@@ -223,7 +223,22 @@ class StrictProperty(ValidatedProperty):
     return self.__property_type
 
 
-class CMP(Validator):
+class CMPType(type):
+
+    def __lt__(cls, constant):
+        return cls(operator.lt, constant)
+
+    def __le__(cls, constant):
+        return cls(operator.le, constant)
+
+    def __gt__(cls, constant):
+        return cls(operator.gt, constant)
+
+    def __ge__(cls, constant):
+        return cls(operator.ge, constant)
+
+
+class CMP(Validator, metaclass=CMPType):
     """Comparison validator.
 
     Validation based on a binary operator.  Meta-class has operator methods overloaded so may be combined using normal
@@ -251,20 +266,6 @@ class CMP(Validator):
     def binop(self):
         """Binop associated with this validator."""
         return self.__binop
-
-    class __metaclass__(type):
-
-        def __lt__(cls, constant):
-            return cls(operator.lt, constant)
-
-        def __le__(cls, constant):
-            return cls(operator.le, constant)
-
-        def __gt__(cls, constant):
-            return cls(operator.gt, constant)
-
-        def __ge__(cls, constant):
-            return cls(operator.ge, constant)
 
 
 @validator_def

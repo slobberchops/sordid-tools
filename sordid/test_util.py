@@ -15,10 +15,8 @@
 # limitations under the License.
 #
 
-import CGIHTTPServer
-import httplib
+import http.client as httplib
 import socket
-import sys
 import threading
 import time
 import unittest
@@ -87,11 +85,6 @@ class WsgiTest(unittest.TestCase):
   START_DELAY_TIME = 0.5
 
   def setUp(self):
-    if sys.version_info[:2] < (2, 6):
-      print >>sys.stderr, ('WsgiTest requires Python version 2.6 or greater. '
-                           'Current version is %d.%d' % sys.version_info[:2])
-      sys.exit(1)
-    
     self.app = self.create_wsgi_app()
     self.server = None
     if self.app:
@@ -144,18 +137,3 @@ class WsgiTest(unittest.TestCase):
     if not app:
       app = getattr(self, 'TEST_APP', None)
     return app
-
-
-class TestCase(unittest.TestCase):
-  """Base class for additional testing functionality."""
-
-  def assertIs(self, a, b, message=None):
-    """Assert that two values are actually the same.
-
-    Args:
-      a: First value to compare.
-      b: Second value to compare.
-      message: Optional message.
-    """
-    message = message or ('Expected %r, was %r' % (a, b))
-    self.assertTrue(a is b, message)

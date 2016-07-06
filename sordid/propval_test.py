@@ -19,7 +19,7 @@ import operator
 
 import unittest
 
-import mox
+from mox3 import mox
 
 from sordid import proputils
 from sordid import proputils_test
@@ -193,7 +193,7 @@ class StrictPropertyTest(proputils_test.PropertyTestMixin,
     class C(object):
       p = propval.StrictProperty(str)
       i = propval.StrictProperty(int)
-      s = propval.StrictProperty(basestring)
+      s = propval.StrictProperty(str)
     return C
 
   def testInitialState_Set(self):
@@ -210,18 +210,16 @@ class StrictPropertyTest(proputils_test.PropertyTestMixin,
     self.assertRaises(TypeError, setattr, c, 's', None)
 
     # Must assign str
-    self.assertRaises(TypeError, setattr, c, 'p', u'unicode')
+    self.assertRaises(TypeError, setattr, c, 'p', b'unicode')
     self.assertRaises(TypeError, setattr, c, 'p', 1.2)
     self.assertRaises(TypeError, setattr, c, 'p', 1)
 
     # Must assign int
     self.assertRaises(TypeError, setattr, c, 'i', 'str')
     self.assertRaises(TypeError, setattr, c, 'i', 1.2)
-    self.assertRaises(TypeError, setattr, c, 'i', long(1))
 
     # Must assign any string
     self.assertRaises(TypeError, setattr, c, 's', 1.2)
-    self.assertRaises(TypeError, setattr, c, 's', long(1))
 
   def testAssignRightTypes(self):
     c = self.C()

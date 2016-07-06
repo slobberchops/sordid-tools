@@ -44,7 +44,7 @@ class TestPositional(unittest.TestCase):
   
     try:
       fn(1)
-    except TypeError, err:
+    except TypeError as err:
       self.assertEquals('Call to fn accepts only 0 parameters', str(err))
     else:
       self.fail('Expected type error')

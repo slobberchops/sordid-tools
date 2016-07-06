@@ -34,7 +34,7 @@ def config_props(cls, attrs=None):
   try:
     cls_config_props = cls.__config_props__
   except AttributeError:
-    for name, value in attrs.iteritems():
+    for name, value in attrs.items():
       config_prop(cls, name, value)
   else:
     cls_config_props(attrs)
@@ -136,7 +136,7 @@ class PropertiedType(type):
     config_props(cls, dct)
 
 
-class Propertied(object):
+class Propertied(object, metaclass=PropertiedType):
   """Convenient base class for defining classes with properties.
 
   For example:
@@ -146,8 +146,6 @@ class Propertied(object):
       name = StrictType(unicode)
       age = StrictType(int)
   """
-
-  __metaclass__ = PropertiedType
 
 
 class HasProps(Propertied):
@@ -167,8 +165,8 @@ class HasProps(Propertied):
     except AttributeError:
       cls.__props = {}
     else:
-      cls.__props = dict(props.iteritems())
-    for name, value in attrs.iteritems():
+      cls.__props = dict(props.items())
+    for name, value in attrs.items():
       config_prop(cls, name, value)
 
   @classmethod
@@ -180,12 +178,12 @@ class HasProps(Propertied):
   @classmethod
   def prop_names(cls):
     """Iterable of all property names."""
-    return cls.__props.iterkeys()
+    return cls.__props.keys()
 
   @classmethod
   def props(cls):
     """Iterable of all property descriptors."""
-    return cls.__props.iteritems()
+    return cls.__props.items()
 
 
 class Property(object):

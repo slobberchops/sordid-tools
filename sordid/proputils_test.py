@@ -17,7 +17,7 @@
 
 import unittest
 
-import mox
+from mox3 import mox
 
 from sordid import proputils
 
@@ -135,10 +135,9 @@ class ConfigPropsTest(mox.MoxTestBase):
     class TargetClass(object):
       __config_prop__ = self.mox.CreateMockAnything()
 
-    attrs = {'a': 1, 'b': 2}
-
-    TargetClass.__config_prop__('a', 1).AndReturn(False)
-    TargetClass.__config_prop__('b', 2).AndReturn(True)
+    mox.UnorderedGroup
+    TargetClass.__config_prop__('a', 1).InAnyOrder().AndReturn(False)
+    TargetClass.__config_prop__('b', 2).InAnyOrder().AndReturn(True)
 
     self.mox.ReplayAll()
 
@@ -190,17 +189,14 @@ class PropertiedTypeTest(mox.MoxTestBase):
 
     proputils.config_props(mox.Func(lambda c: c.__name__ == 'MyClass'),
                             {'__module__': __name__,
-                             '__metaclass__': proputils.PropertiedType,
+                             '__qualname__': 'PropertiedTypeTest.testMetaClass.<locals>.MyClass',
                              'a': 'a',
                              'b': 'b',
                              })
-                             
 
     self.mox.ReplayAll()
 
-    class MyClass(object):
-
-      __metaclass__ = proputils.PropertiedType
+    class MyClass(object, metaclass=proputils.PropertiedType):
 
       a = 'a'
       b = 'b'
@@ -222,11 +218,12 @@ class PropertiedTest(mox.MoxTestBase):
     self.mox.StubOutWithMock(proputils, 'config_props')
 
     proputils.config_props(mox.Func(lambda c: c.__name__ == 'MySubClass'),
-                            {'__module__': __name__,
-                             'a': 1,
-                             'b': 2,
-                             })
-                             
+                           {'__module__': __name__,
+                            '__qualname__': 'PropertiedTest.testMetaClass.<locals>.MySubClass',
+                            'a': 1,
+                            'b': 2,
+                           })
+
 
     self.mox.ReplayAll()
 

@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-import datetime
-
 from sordid import proputils
 from sordid import propval
 from sordid import util
@@ -86,13 +84,13 @@ class Transition(object):
   def __init__(self, state_map):
     super(Transition, self).__init__()
     if isinstance(state_map, dict):
-      state_iterator = state_map.iteritems()
+      state_iterator = state_map.items()
     else:
       state_iterator = iter(state_map)
 
     final_state_map = {}
     seen_froms = set()
-    for froms, to in state_map.iteritems():
+    for froms, to in state_map.items():
       if isinstance(froms, State):
         froms = [froms]
       for next_from in froms:
@@ -124,10 +122,10 @@ class Machine(proputils.HasProps):
   def __config_props__(cls, attrs):
     cls.__state_by_name = {}
     cls.__transition_by_name = {}
-    for name, value in attrs.iteritems():
+    for name, value in attrs.items():
       proputils.config_prop(cls, name, value)
 
-    cls.state_names = sorted(cls.__state_by_name.itervalues(),
+    cls.state_names = sorted(cls.__state_by_name.values(),
                              key=lambda state: state.source_order)
 
     if cls.__state_by_name:
@@ -157,7 +155,7 @@ class Machine(proputils.HasProps):
 
   @classmethod
   def iter_transitions(cls):
-    return cls.__transition_by_name.iteritems()
+    return cls.__transition_by_name.items()
 
   INIT = proputils.ReadOnlyProperty()
 
