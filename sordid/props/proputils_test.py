@@ -19,7 +19,7 @@ import unittest
 
 from mox3 import mox
 
-from sordid import proputils
+from sordid.props import proputils
 
 
 class ConfigPropNameTest(mox.MoxTestBase):
@@ -188,7 +188,7 @@ class PropertiedTypeTest(mox.MoxTestBase):
     self.mox.StubOutWithMock(proputils, 'config_props')
 
     proputils.config_props(mox.Func(lambda c: c.__name__ == 'MyClass'),
-                            {'__module__': __name__,
+                           {'__module__': __name__,
                              '__qualname__': 'PropertiedTypeTest.testMetaClass.<locals>.MyClass',
                              'a': 'a',
                              'b': 'b',

@@ -16,14 +16,13 @@
 #
 
 import operator
-
 import unittest
 
 from mox3 import mox
 
-from sordid import proputils
-from sordid import proputils_test
-from sordid import propval
+from sordid.props import propval
+from sordid.props import proputils
+from sordid.props import proputils_test
 
 
 class ValidatorTest(mox.MoxTestBase):

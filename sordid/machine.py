@@ -15,19 +15,19 @@
 # limitations under the License.
 #
 
-from sordid import proputils
-from sordid import propval
 from sordid import util
+from sordid import props
+
 
 class IllegalStateTransition(Exception):
   pass
 
 
-class State(util.SourceOrdered, proputils.HasProps):
+class State(util.SourceOrdered, props.HasProps):
 
-  name = proputils.ReadOnlyProperty()
+  name = props.ReadOnlyProperty()
 
-  machine = proputils.ReadOnlyProperty()
+  machine = props.ReadOnlyProperty()
 
   def __str__(self):
     try:
@@ -52,13 +52,13 @@ class State(util.SourceOrdered, proputils.HasProps):
     return self.__string_value
 
 
-class Transitioner(proputils.HasProps):
+class Transitioner(props.HasProps):
 
   def __init__(self, machine, transition):
     self.machine = machine
     self.__transition = transition
 
-  machine = proputils.ReadOnlyProperty()
+  machine = props.ReadOnlyProperty()
 
   @property
   def transition(self):
@@ -104,7 +104,7 @@ class Transition(object):
     return self.__state_map.get(state, None)
 
 
-class Machine(proputils.HasProps):
+class Machine(props.HasProps):
 
   def __init__(self):
     try:
@@ -123,7 +123,7 @@ class Machine(proputils.HasProps):
     cls.__state_by_name = {}
     cls.__transition_by_name = {}
     for name, value in attrs.items():
-      proputils.config_prop(cls, name, value)
+      props.config_prop(cls, name, value)
 
     cls.state_names = sorted(cls.__state_by_name.values(),
                              key=lambda state: state.source_order)
@@ -137,7 +137,7 @@ class Machine(proputils.HasProps):
 
   @classmethod
   def __config_prop__(cls, name, value):
-    if not proputils.config_prop_name(cls, name, value):
+    if not props.config_prop_name(cls, name, value):
       if isinstance(value, State):
         value.name = name
         value.machine = cls
@@ -157,8 +157,8 @@ class Machine(proputils.HasProps):
   def iter_transitions(cls):
     return cls.__transition_by_name.items()
 
-  INIT = proputils.ReadOnlyProperty()
+  INIT = props.ReadOnlyProperty()
 
-  state = propval.ValidatedProperty(propval.type_validator(State))
+  state = props.ValidatedProperty(props.type_validator(State))
 
-  state_names = proputils.ReadOnlyProperty()
+  state_names = props.ReadOnlyProperty()
