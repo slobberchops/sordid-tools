@@ -66,7 +66,7 @@ class ValidatedProperty(proputils.Property):
     super(ValidatedProperty, self).__set__(instance, value)
 
 
-class Validator(object):
+class Validator:
   """Base class validator class.
 
   Though not required to make a property validator, this class

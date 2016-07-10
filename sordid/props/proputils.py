@@ -136,7 +136,7 @@ class PropertiedType(type):
     config_props(cls, dct)
 
 
-class Propertied(object, metaclass=PropertiedType):
+class Propertied(metaclass=PropertiedType):
   """Convenient base class for defining classes with properties.
 
   For example:
@@ -186,7 +186,7 @@ class HasProps(Propertied):
     return cls.__props.items()
 
 
-class Property(object):
+class Property:
   """A property base class.
 
   This class implements a Python descriptor object:

@@ -173,7 +173,7 @@ class ValidatedPropertyTest(proputils_test.PropertyTestMixin,
                             unittest.TestCase):
 
   def new_class(self):
-    class C(object):
+    class C:
       @propval.ValidatedProperty
       def p(value):
         return bool(value)
@@ -189,7 +189,7 @@ class StrictPropertyTest(proputils_test.PropertyTestMixin,
                          unittest.TestCase):
 
   def new_class(self):
-    class C(object):
+    class C:
       p = propval.StrictProperty(str)
       i = propval.StrictProperty(int)
       s = propval.StrictProperty(str)

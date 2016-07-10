@@ -59,7 +59,7 @@ def positional(max_positional_arguments):
   return positional_decorator
 
 
-class SourceOrdered(object):
+class SourceOrdered:
   """Base class that remembers order its instances are created.
 
   Example:

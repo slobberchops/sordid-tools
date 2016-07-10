@@ -79,7 +79,7 @@ class Transitioner(props.HasProps):
     return self.transition.get_next_state_from(self.machine.state)
 
 
-class Transition(object):
+class Transition:
 
   def __init__(self, state_map):
     super(Transition, self).__init__()
