@@ -18,7 +18,7 @@
 import unittest
 from wsgiref import util as wsgi_util
 
-from sordid import test_util
+from sordid import testing
 
 
 def define_test_app(message):
@@ -38,7 +38,7 @@ def define_test_app(message):
   return test_app
 
 
-class WsgiTestTest(test_util.WsgiTest):
+class WsgiTestTest(testing.WsgiTest):
 
   TEST_APP = staticmethod(define_test_app('class-attribute'))
 
@@ -53,7 +53,7 @@ class WsgiTestTest(test_util.WsgiTest):
                                  self.port),
                       response.read())
 
-  @test_util.with_app(define_test_app('from-with-app'))
+  @testing.with_app(define_test_app('from-with-app'))
   def test_with_app(self):
     self.connection.request('POST', '/some_path', 'body',
                             {'header-1': 'a-value'})

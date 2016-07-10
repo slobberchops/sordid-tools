@@ -17,13 +17,13 @@
 
 import unittest
 
-from sordid import test_util
+from sordid import testing
 from sordid import wsgi
 
 
-class StaticServerTest(test_util.WsgiTest):
+class StaticServerTest(testing.WsgiTest):
 
-  @test_util.with_app(wsgi.static(content=b'This is content'))
+  @testing.with_app(wsgi.static(content=b'This is content'))
   def test_basic_content(self):
     response = self.do_request()
     self.assertEquals(200, response.status)
@@ -31,8 +31,8 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/html', response.getheader('content-type'))
     self.assertEquals(b'This is content', response.read())
 
-  @test_util.with_app(wsgi.static(content=b'This is content',
-                                  content_type='text/plain'))
+  @testing.with_app(wsgi.static(content=b'This is content',
+                                content_type='text/plain'))
   def test_other_content_type(self):
     response = self.do_request()
     self.assertEquals(200, response.status)
@@ -40,7 +40,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/plain', response.getheader('content-type'))
     self.assertEquals(b'This is content', response.read())
 
-  @test_util.with_app(wsgi.static(404))
+  @testing.with_app(wsgi.static(404))
   def test_integer_status(self):
     response = self.do_request()
     self.assertEquals(404, response.status)
@@ -48,7 +48,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/html', response.getheader('content-type'))
     self.assertEquals(b'', response.read())
 
-  @test_util.with_app(wsgi.static('500 Some Kind Of Error'))
+  @testing.with_app(wsgi.static('500 Some Kind Of Error'))
   def test_string_status(self):
     response = self.do_request()
     self.assertEquals(500, response.status)
@@ -56,7 +56,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/html', response.getheader('content-type'))
     self.assertEquals(b'', response.read())
 
-  @test_util.with_app(wsgi.static((400, 'Bad Something')))
+  @testing.with_app(wsgi.static((400, 'Bad Something')))
   def test_tuple_status(self):
     response = self.do_request()
     self.assertEquals(400, response.status)
@@ -64,7 +64,7 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('text/html', response.getheader('content-type'))
     self.assertEquals(b'', response.read())
 
-  @test_util.with_app(wsgi.static(headers={'header-1': 'value-1',
+  @testing.with_app(wsgi.static(headers={'header-1': 'value-1',
                                            'header-2': 'value-2'}))
   def test_dict_headers(self):
     response = self.do_request()
@@ -75,8 +75,8 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals('value-2', response.getheader('header-2'))
     self.assertEquals(b'', response.read())
 
-  @test_util.with_app(wsgi.static(headers=[('header-1', 'value-1'),
-                                           ('header-2', 'value-2')]))
+  @testing.with_app(wsgi.static(headers=[('header-1', 'value-1'),
+                                         ('header-2', 'value-2')]))
   def test_list_headers(self):
     response = self.do_request()
     self.assertEquals(200, response.status)
@@ -87,9 +87,9 @@ class StaticServerTest(test_util.WsgiTest):
     self.assertEquals(b'', response.read())
 
 
-class ChooseTest(test_util.WsgiTest):
+class ChooseTest(testing.WsgiTest):
 
-  @test_util.with_app(wsgi.choose(
+  @testing.with_app(wsgi.choose(
     wsgi.static(400, b'first', headers={'a': '1'}),
     wsgi.static(500, b'second', headers={'a': '2'}),
     wsgi.static(300, b'third', headers={'a': '3'})))
@@ -99,7 +99,7 @@ class ChooseTest(test_util.WsgiTest):
     self.assertEquals(b'first', response.read())
     self.assertEquals('1', response.getheader('a'))
 
-  @test_util.with_app(wsgi.choose(
+  @testing.with_app(wsgi.choose(
     wsgi.static(404, b'first', headers={'a': '1'}),
     wsgi.static(500, b'second', headers={'a': '2'}),
     wsgi.static(300, b'third', headers={'a': '3'})))
@@ -109,7 +109,7 @@ class ChooseTest(test_util.WsgiTest):
     self.assertEquals(b'second', response.read())
     self.assertEquals('2', response.getheader('a'))
 
-  @test_util.with_app(wsgi.choose(
+  @testing.with_app(wsgi.choose(
     wsgi.static(404, b'first', headers={'a': '1'}),
     wsgi.static(404, b'second', headers={'a': '2'}),
     wsgi.static(300, b'third', headers={'a': '3'})))
@@ -151,11 +151,11 @@ def chained(name):
   return chained_app
 
 
-class ChainTest(test_util.WsgiTest):
+class ChainTest(testing.WsgiTest):
 
-  @test_util.with_app(wsgi.chain(chained(b'app1'),
-                                 chained(b'app2'),
-                                 chained(b'app3')))
+  @testing.with_app(wsgi.chain(chained(b'app1'),
+                               chained(b'app2'),
+                               chained(b'app3')))
   def test_chain(self):
     response = self.do_request()
     self.assertEquals(200, response.status)

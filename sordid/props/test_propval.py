@@ -22,7 +22,7 @@ from mox3 import mox
 
 from sordid.props import propval
 from sordid.props import proputils
-from sordid.props import proputils_test
+from sordid.props import test_proputils
 
 
 class ValidatorTest(mox.MoxTestBase):
@@ -169,7 +169,7 @@ class ValidatorDefTest(unittest.TestCase):
     self.assertTrue(not_between_2_and_8(8))
 
 
-class ValidatedPropertyTest(proputils_test.PropertyTestMixin,
+class ValidatedPropertyTest(test_proputils.PropertyTestMixin,
                             unittest.TestCase):
 
   def new_class(self):
@@ -185,7 +185,7 @@ class ValidatedPropertyTest(proputils_test.PropertyTestMixin,
     self.assertRaises(ValueError, setattr, c, 'p', False)
 
 
-class StrictPropertyTest(proputils_test.PropertyTestMixin,
+class StrictPropertyTest(test_proputils.PropertyTestMixin,
                          unittest.TestCase):
 
   def new_class(self):
