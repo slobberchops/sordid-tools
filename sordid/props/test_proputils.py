@@ -20,6 +20,7 @@ import unittest
 from mox3 import mox
 
 from sordid.props import proputils
+from sordid.props import prop_testutils
 
 
 class ConfigPropNameTest(mox.MoxTestBase):
@@ -124,11 +125,11 @@ class ConfigPropsTest(mox.MoxTestBase):
 
     attrs = {'a': 1}
 
-    TargetClass.__config_props__({'a': 1})
+    TargetClass.__config_props__(attrs)
 
     self.mox.ReplayAll()
 
-    proputils.config_props(TargetClass, {'a': 1})
+    proputils.config_props(TargetClass, attrs)
 
   def testCustomConfigPropMethod(self):
     
@@ -329,48 +330,7 @@ class HasPropsTest(mox.MoxTestBase):
     self.assertRaises(AttributeError, new_subclass)
 
 
-class PropertyTestMixin(object):
-
-  def setUp(self):
-    self.C = self.new_class()
-
-  def do_test_set_and_delete(self, c):
-    c.p = 'x'
-    self.assertEquals('x', c.p)
-    c.p = 'y'
-    self.assertEquals('y', c.p)
-
-    del c.p
-    self.assertRaises(AttributeError, getattr, c, 'p')
-    self.assertRaises(AttributeError, delattr, c, 'p')
-
-  def testInitialState_ClassAttributes(self):
-    self.assertRaises(AttributeError, getattr, self.C.p, 'name')
-    self.assertRaises(AttributeError, getattr, self.C.p, 'class')
-
-  def testInitialState_Get(self):
-    c = self.C()
-    self.assertRaises(AttributeError, getattr, c, 'p')
-
-  def testInitialState_Set(self):
-    c = self.C()
-    self.assertRaises(AttributeError, setattr, c, 'p', 1)
-
-  def testInitialState_Delete(self):
-    c = self.C()
-    self.assertRaises(AttributeError, delattr, c, 'p')
-
-  def testGetSetAndDelete(self):
-    proputils.config_props(self.C)
-    c = self.C()
-
-    self.assertRaises(AttributeError, getattr, c, 'p')
-    self.assertRaises(AttributeError, delattr, c, 'p')
-
-    self.do_test_set_and_delete(c)
-
-
-class PropertyTest(PropertyTestMixin, unittest.TestCase):
+class PropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):
@@ -398,7 +358,7 @@ class PropertyTest(PropertyTestMixin, unittest.TestCase):
     self.assertEquals('I am calculated: 3', instance.calc)
 
 
-class ReadOnlyPropertyTest(PropertyTestMixin, unittest.TestCase):
+class ReadOnlyPropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):
     class C(object):
