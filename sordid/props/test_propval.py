@@ -243,13 +243,22 @@ class StrictPropertyTest(prop_testutils.PropertyTestMixin,
     c.s = u'another unicode'
     self.assertEquals('another unicode', c.s)
 
+  def testPropertyType(self):
+    self.assertEqual(str, self.C.p.property_type)
+    self.assertEqual(int, self.C.i.property_type)
+    self.assertEqual(str, self.C.s.property_type)
+
 
 class CmpTest(unittest.TestCase):
 
-    def testBinop(self):
+    def testDoComparison(self):
         validator = propval.CMP(operator.gt, 10)
         self.assertFalse(validator(10))
         self.assertTrue(validator(11))
+
+    def testBinop(self):
+        validator = propval.CMP(operator.gt, 10)
+        self.assertEqual(operator.gt, validator.binop)
 
     def testLt(self):
         validator = propval.CMP < 10
@@ -283,6 +292,21 @@ class IsInTest(unittest.TestCase):
         self.assertFalse(validator(31))
         self.assertTrue(validator(30))
 
+
+class ValidatedPropertyDefTest(unittest.TestCase):
+
+    def test_prop_def(self):
+        NotEmptyProperty = propval.validated_property_def(~propval.EMPTY)
+        class HasNotEmpty(proputils.Propertied):
+            not_empty = NotEmptyProperty()
+
+        has_not_empty = HasNotEmpty()
+        with self.assertRaisesRegex(ValueError,
+                                    'Value \'0\' is not valid for property '
+                                    '\'not_empty\' on \'HasNotEmpty\''):
+            has_not_empty.not_empty = 0
+        has_not_empty.not_empty = 1
+        self.assertEqual(1, has_not_empty.not_empty)
 
 if __name__ == '__main__':
   unittest.main()

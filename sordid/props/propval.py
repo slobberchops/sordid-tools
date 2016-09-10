@@ -273,6 +273,7 @@ def is_in(constant):
     """Create validator to check whether value is in a constant set of values."""
     return lambda value: value in constant
 
+
 def validated_property_def(validator):
     """Helper function for defining reusable validated classes."""
     class _ValidatedProperty(ValidatedProperty):

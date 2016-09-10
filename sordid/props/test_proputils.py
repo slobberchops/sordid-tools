@@ -357,6 +357,21 @@ class PropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
     instance.calc = 'new val'
     self.assertEquals('I am calculated: 3', instance.calc)
 
+  def testUnconfiguredClsReference(self):
+    prop = proputils.Property()
+    with self.assertRaisesRegex(AttributeError, 'Property not configured'):
+      prop.cls
+
+  def testConfigTwice(self):
+    class Owner(proputils.Propertied):
+      prop1 = proputils.Property()
+
+    with self.assertRaisesRegex(TypeError,
+                                'Property \'prop1\' is already configured '
+                                'on class \'Owner\''):
+      proputils.config_prop(Owner, 'prop2', Owner.prop1)
+    self.assertEqual('prop1', Owner.prop1.name)
+
 
 class ReadOnlyPropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
 

@@ -216,8 +216,8 @@ class Property:
       name: Name associated with property.
     """
     if self.__name:
-      raise IllegalStateError(
-        'Property \'%s\'  is already configured on class \'%s\'' % (
+      raise TypeError(
+        'Property \'%s\' is already configured on class \'%s\'' % (
           self.name, self.cls.__name__))
     self.__name = name
     self.__attribute_name = '_%s__%s' % (cls.__name__, name)
