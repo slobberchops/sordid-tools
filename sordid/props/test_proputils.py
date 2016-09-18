@@ -373,6 +373,36 @@ class PropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
     self.assertEqual('prop1', Owner.prop1.name)
 
 
+class UndeletablePropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
+
+  def new_class(self):
+    class C(object):
+      p = proputils.UndeletableProperty()
+    return C
+
+  def do_test_set_and_delete(self, c):
+    c.p = 'x'
+    self.assertEquals('x', c.p)
+    c.p = 'y'
+    self.assertEquals('y', c.p)
+
+    self.assertRaises(AttributeError, delattr, c, 'p')
+    self.assertEquals('y', c.p)
+
+
+class UsettablePropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
+
+  def new_class(self):
+    class C(object):
+      p = proputils.UnsettableProperty()
+    return C
+
+  def do_test_set_and_delete(self, c):
+    with self.assertRaisesRegex(AttributeError,
+                                '\'p\' object attribute \'C\' is read-only'):
+      c.p = 'x'
+
+
 class ReadOnlyPropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
 
   def new_class(self):

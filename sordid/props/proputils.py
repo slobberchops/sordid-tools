@@ -274,20 +274,70 @@ class Property:
     delattr(instance, self.__attribute_name)
 
 
-class ReadOnlyProperty(Property):
-  """Property that may only be set once with non-None value."""
-
-  def __set__(self, instance, value):
-    try:
-      getattr(instance, self.name)
-    except AttributeError:
-      super(ReadOnlyProperty, self).__set__(instance, value)
-    else:
-      raise AttributeError(
-        '\'%s\' object attribute \'%s\' is read-only' % (self.name,
-                                                         self.cls.__name__))
+class UndeletableProperty(Property):
+  """A property that has its delete functionality disabled."""
 
   def __delete__(self, value):
     raise AttributeError(
       '\'%s\' object attribute \'%s\' is read-only' % (self.name,
                                                        self.cls.__name__))
+
+
+class UnsettableProperty(UndeletableProperty):
+  """A property that has its setting functionality disabled."""
+
+  def __set__(self, instance, value):
+    raise AttributeError(
+      '\'%s\' object attribute \'%s\' is read-only' % (self.name,
+                                                       self.cls.__name__))
+
+
+class ReadOnlyProperty(UnsettableProperty):
+  """Property that may only be set once."""
+
+  def __set__(self, instance, value):
+    try:
+      getattr(instance, self.name)
+    except AttributeError:
+      super(UnsettableProperty, self).__set__(instance, value)
+    else:
+      super(ReadOnlyProperty, self).__set__(instance, value)
+
+
+class ComputedProperty(UnsettableProperty):
+  """Property that has its value calculated from class instance.
+
+  Example:
+
+      class Person(HasProps):
+
+        first_name = Property()
+        last_name = Property()
+
+        @ComputedProperty
+        def full_name(self):
+          return '{}, {}'.format(self.last_name, self.first_name)
+
+
+      p = Person()
+      p.first_name = 'Alan'
+      p.last_name = 'Turing'
+      assert p.full_name == 'Turing, Alan'
+  """
+
+  @property
+  def callable(self):
+    """Callable used to defined computed property."""
+    return self.__callable
+
+  def __call__(self, callable):
+    """Constructor.
+
+    Args:
+        callable: A callable of the signature (self)->object.
+    """
+    self.__callable = callable
+    return self
+
+  def __get_property__(self, instance):
+    return self.__callable(instance)

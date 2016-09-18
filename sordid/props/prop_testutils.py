@@ -1,5 +1,5 @@
 
-from . import proputils
+from sordid.props import proputils
 
 
 class PropertyTestMixin(object):
