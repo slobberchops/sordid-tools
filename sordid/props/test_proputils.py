@@ -420,5 +420,41 @@ class ReadOnlyPropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
     self.assertEquals('x', c.p)
 
 
+def computed_property_callable(self):
+  return 'computed-property:' + self.on_self
+
+
+class ComputedPropertyTest(prop_testutils.PropertyTestMixin, unittest.TestCase):
+
+  def new_class(self):
+    class C(object):
+
+      def __init__(self):
+        self.on_self = 'abc'
+
+      p = proputils.ComputedProperty(computed_property_callable)
+
+    return C
+
+  def testGetSetAndDelete(self):
+    proputils.config_props(self.C)
+    c = self.C()
+
+    self.assertEqual('computed-property:abc', c.p)
+    with self.assertRaisesRegex(AttributeError, '\'p\' object attribute \'C\' is read-only'):
+      del c.p
+
+    with self.assertRaisesRegex(AttributeError, '\'p\' object attribute \'C\' is read-only'):
+      c.p = 'another-value'
+
+    self.assertEqual('computed-property:abc', c.p)
+
+  def test_callable(self):
+    self.assertIs(computed_property_callable, self.C.p.callable)
+
+  def test_non_callable(self):
+    with self.assertRaisesRegex(TypeError, 'callable_object must be callable'):
+      proputils.ComputedProperty('non-callable')
+
 if __name__ == '__main__':
   unittest.main()

@@ -174,6 +174,9 @@ class HasProps(Propertied):
     """Configures and potentially remembers a single property."""
     if config_prop_name(cls, name, value):
       cls.__props[name] = value
+      return True
+    else:
+      return False
 
   @classmethod
   def prop_names(cls):
@@ -330,14 +333,15 @@ class ComputedProperty(UnsettableProperty):
     """Callable used to defined computed property."""
     return self.__callable
 
-  def __call__(self, callable):
+  def __init__(self, callable_object):
     """Constructor.
 
     Args:
-        callable: A callable of the signature (self)->object.
+        callable_object: A callable of the signature (self)->object.
     """
-    self.__callable = callable
-    return self
+    if not callable(callable_object):
+      raise TypeError('callable_object must be callable')
+    self.__callable = callable_object
 
   def __get_property__(self, instance):
     return self.__callable(instance)
