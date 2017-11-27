@@ -18,7 +18,7 @@
 import unittest
 from wsgiref import util as wsgi_util
 
-from machine.src.sordid import testing
+from sordid import testing
 
 
 def define_test_app(message):

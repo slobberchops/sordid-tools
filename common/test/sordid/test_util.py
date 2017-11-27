@@ -17,7 +17,7 @@
 
 import unittest
 
-from machine.src.sordid import util
+from sordid import util
 
 
 class TestPositional(unittest.TestCase):
