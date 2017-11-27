@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 #
-# Copyright 2016 Rafe Kaplan
+# Copyright 2017 Rafe Kaplan
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,3 +15,6 @@
 # limitations under the License.
 #
 
+import pkg_resources
+
+pkg_resources.declare_namespace('sordid')
