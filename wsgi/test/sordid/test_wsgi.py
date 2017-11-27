@@ -18,7 +18,7 @@
 import unittest
 
 from sordid import testing
-from sordid import wsgi
+from wsgi.src.sordid import wsgi
 
 
 class StaticServerTest(testing.WsgiTest):
