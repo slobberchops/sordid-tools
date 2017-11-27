@@ -14,5 +14,5 @@
 # limitations under the License.
 #
 
-mox3
-
+pkg_resources
+six
