@@ -15,5 +15,9 @@
 # limitations under the License.
 #
 
+import pkg_resources
+
 from .proputils import *
 from .propval import *
+
+pkg_resources.declare_namespace('sordid.props')
