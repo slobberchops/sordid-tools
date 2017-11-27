@@ -10,6 +10,8 @@
       <sourceFolder url="file://$MODULE_DIR$/testing/test" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/props/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/props/test" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/machine/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/machine/test" isTestSource="false" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.4.3 virtualenv at ~/python-envs/sortid" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

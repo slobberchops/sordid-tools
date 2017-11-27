@@ -17,7 +17,7 @@
 
 import http.client as httplib
 
-from sordid import util
+from machine.src.sordid import util
 
 NEXT_APP_ENVIRON = 'sordid.next.app'
 

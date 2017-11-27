@@ -32,7 +32,7 @@ def parse_requirements():
 requirements = parse_requirements()
 
 setuptools.setup(
-    name='sordid',
+    name='sordid-machine',
     version='0.1',
     packages=setuptools.find_packages(where='src'),
     package_dir={'': 'src'},

@@ -20,9 +20,9 @@ import unittest
 
 from mox3 import mox
 
-from sordid.props import propval
-from sordid.props import prop_testutils
-from sordid.props import proputils
+from machine.src.sordid import prop_testutils
+from machine.src.sordid import proputils
+from machine.src.sordid import propval
 
 
 class ValidatorTest(mox.MoxTestBase):

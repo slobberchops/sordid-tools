@@ -17,7 +17,7 @@
 
 import unittest
 
-from sordid import machine
+from machine.src.sordid import machine
 
 
 class MachineTest(unittest.TestCase):
