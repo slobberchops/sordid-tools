@@ -19,8 +19,8 @@ import unittest
 
 from mox3 import mox
 
-from sordid.props import proputils
-from sordid.props import prop_testutils
+from sordid import prop_testutils
+from sordid import proputils
 
 
 class ConfigPropNameTest(mox.MoxTestBase):

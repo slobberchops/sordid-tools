@@ -17,7 +17,7 @@
 
 import operator
 
-from sordid.props import proputils
+from sordid import proputils
 
 
 class ValidatedProperty(proputils.Property):
