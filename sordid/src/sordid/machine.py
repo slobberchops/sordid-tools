@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from sordid import props, util
+from sordid import util, props
 
 
 class IllegalStateTransition(Exception):
