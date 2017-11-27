@@ -38,5 +38,5 @@ setuptools.setup(
     package_dir={'': 'src'},
     install_requires=requirements,
     license='Apache License, Version 2.0',
-    url='https://github.com/slobberchops/sordid-tools/tree/master/sordid',
+    url='https://github.com/slobberchops/sordid-tools/tree/master/machine',
 )
